@@ -1,0 +1,10 @@
+[package]
+name = "pulse_macro"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pulse_name = { workspace = true }
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"

@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/pulse",
+    "crates/pulse_cdt",
+    "contracts",
+    "contracts/pulse_token",
+    "crates/pulse_macro",
+    "crates/pulse_name",
+    "crates/pulse_proc_macro",
+    "crates/pulse_serialization"
+]
+
+[workspace.dependencies]
+pulse = { version = "=0.1.0", path = "crates/pulse", default-features = false }
+pulse_cdt = { version = "=0.1.0", path = "crates/pulse_cdt", default-features = false }
+pulse_macro = { version = "=0.1.0", path = "crates/pulse_macro", default-features = false }
+pulse_proc_macro = { version = "=0.1.0", path = "crates/pulse_proc_macro", default-features = false }
+pulse_name = { version = "=0.1.0", path = "crates/pulse_name", default-features = false }
+pulse_serialization = { version = "=0.1.0", path = "crates/pulse_serialization", default-features = false }

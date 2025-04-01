@@ -1,0 +1,9 @@
+[package]
+name = "pulse"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pulse_proc_macro = { workspace = true }
+pulse_name = { workspace = true }
+pulse_serialization = { workspace = true }

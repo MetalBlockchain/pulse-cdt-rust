@@ -1,0 +1,7 @@
+[package]
+name = "pulse_cdt"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pulse = { version = ">= 0.1", path = "../pulse" }

@@ -1,0 +1,12 @@
+[package]
+name = "pulse_serialization"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+syn = { version = "2", features = ["full"] }
+proc-macro2 = "1"
+quote = "1"
+bincode = "2.0.1"
+hex = "0.4.3"
+pulse_proc_macro = { workspace = true }

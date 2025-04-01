@@ -1,0 +1,11 @@
+[package]
+name = "pulse_token"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pulse = { workspace = true }
+pulse_cdt = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]

@@ -1,3 +1,6 @@
+#![no_std]
+extern crate alloc;
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn};
@@ -5,7 +8,6 @@ use syn::{parse_macro_input, ItemFn};
 mod action;
 mod derive_numbytes;
 mod derive_read;
-mod derive_table;
 mod derive_write;
 mod dispatch;
 mod internal;
@@ -56,13 +58,5 @@ pub fn derive_numbytes(input: TokenStream) -> TokenStream {
 pub fn derive_write(input: TokenStream) -> TokenStream {
     use crate::derive_write::DeriveWrite;
     let item = parse_macro_input!(input as DeriveWrite);
-    quote!(#item).into()
-}
-
-#[inline]
-#[proc_macro_derive(Table, attributes(pulse))]
-pub fn derive_table(input: TokenStream) -> TokenStream {
-    use crate::derive_table::DeriveTable;
-    let item = parse_macro_input!(input as DeriveTable);
     quote!(#item).into()
 }

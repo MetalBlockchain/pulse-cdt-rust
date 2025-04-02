@@ -1,3 +1,6 @@
+#![no_std]
+extern crate alloc;
+
 pub use pulse_proc_macro::{action, name, dispatch};
 
 mod action;

@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::Name;
 
 #[derive(Clone, Debug, Default)]

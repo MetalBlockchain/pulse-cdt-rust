@@ -1,3 +1,4 @@
+use alloc::{boxed::Box, string::ToString};
 use heck::{ToLowerCamelCase, ToUpperCamelCase};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
@@ -59,23 +60,8 @@ impl ToTokens for ActionFn {
                 FnArg::Typed(input) => {
                     let pat = &input.pat;
                     let ty = &input.ty;
-                    let ty_str = quote!(#ty).to_string();
-                    let serde_attr = if ty_str == "bool" {
-                        quote!(
-                            #[cfg_attr(
-                                feature = "serde",
-                                serde(
-                                    deserialize_with = "::pulse::bool_from_u8",
-                                    serialize_with = "::pulse::bool_to_u8"
-                                )
-                            )]
-                        )
-                    } else {
-                        quote!()
-                    };
                     struct_fields = quote! {
                         #struct_fields
-                        #serde_attr
                         pub #pat: #ty,
                     };
                     assign_args = quote! {
@@ -88,7 +74,8 @@ impl ToTokens for ActionFn {
         }
         let block = &self.block;
 
-        let struct_ident = Ident::new(format!("{}Wrapper", self.struct_ident()).to_upper_camel_case().as_str(), self.sig.ident.span());
+        let struct_ident_name = self.struct_ident().to_string() + "Wrapper";
+        let struct_ident = Ident::new(&struct_ident_name.to_upper_camel_case().as_str(), self.sig.ident.span());
         let type_ident = &self.sig.ident;
         let action_name = self.action_name();
 

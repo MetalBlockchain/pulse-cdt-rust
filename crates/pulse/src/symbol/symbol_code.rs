@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use core::str::FromStr;
 
 use pulse_proc_macro::{NumBytes, Read, Write};
 
@@ -32,7 +32,6 @@ impl From<u64> for SymbolCode {
 
 impl From<SymbolCode> for u64 {
     #[inline]
-    #[must_use]
     fn from(s: SymbolCode) -> Self {
         s.0
     }
@@ -40,7 +39,6 @@ impl From<SymbolCode> for u64 {
 
 impl From<SymbolCode> for [u8; 7] {
     #[inline]
-    #[must_use]
     fn from(s: SymbolCode) -> Self {
         symbol_code_to_bytes(s.0)
     }
@@ -49,7 +47,6 @@ impl From<SymbolCode> for [u8; 7] {
 impl SymbolCode {
     /// TODO docs
     #[inline]
-    #[must_use]
     pub const fn new(value: u64) -> Self {
         Self(value)
     }

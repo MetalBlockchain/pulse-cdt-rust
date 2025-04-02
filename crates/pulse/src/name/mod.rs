@@ -1,10 +1,9 @@
 use core::{
     cmp::PartialEq,
-    fmt,
     str::{self, FromStr},
 };
 
-use pulse_name::{name_from_bytes, name_to_bytes, ParseNameError};
+use pulse_name::{name_from_bytes, ParseNameError};
 use pulse_serialization::{NumBytes, Read, Write};
 
 #[derive(
@@ -63,17 +62,6 @@ impl FromStr for Name {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let name = name_from_bytes(s.bytes())?;
         Ok(name.into())
-    }
-}
-
-impl fmt::Display for Name {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let bytes = name_to_bytes(self.0);
-        let value = str::from_utf8(&bytes)
-            .map(|s| s.trim_end_matches('.'))
-            .map_err(|_| fmt::Error)?;
-        write!(f, "{}", value)
     }
 }
 

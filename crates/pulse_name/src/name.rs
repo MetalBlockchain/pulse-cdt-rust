@@ -1,5 +1,3 @@
-use core::{char, convert::TryFrom, fmt};
-
 pub const NAME_CHARS: [u8; 32] = *b".12345abcdefghijklmnopqrstuvwxyz";
 pub const NAME_MAX_LEN: usize = 13;
 
@@ -9,20 +7,6 @@ pub enum ParseNameError {
     BadChar(u8),
     /// The name is over the maximum allowed length.
     TooLong,
-}
-
-impl fmt::Display for ParseNameError {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Self::BadChar(c) => {
-                write!(f, "name contains invalid character '{}'", char::from(c))
-            }
-            Self::TooLong => {
-                write!(f, "name is too long, must be 13 chars or less")
-            }
-        }
-    }
 }
 
 #[inline]

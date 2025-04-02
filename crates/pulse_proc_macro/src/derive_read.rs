@@ -1,4 +1,5 @@
 use crate::internal::get_root_path;
+use alloc::{borrow::ToOwned, string::ToString};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned, ToTokens};
 use syn::{
@@ -73,15 +74,17 @@ impl ToTokens for DeriveRead {
                 Fields::Unnamed(ref fields) => {
                     let field_reads = fields.unnamed.iter().enumerate().map(|(i, f)| {
                     let ty = &f.ty;
-                    let ident = Ident::new(format!("field_{}", i).as_str(), call_site);
+                    let ident_name = "field_".to_owned() + &i.to_string();
+                    let ident = Ident::new(&ident_name, call_site);
                     quote_spanned! {f.span() =>
                         let #ident = <#ty as #root::Read>::read(bytes, pos)?;
                     }
                 });
                     let fields_list =
                         fields.unnamed.iter().enumerate().map(|(i, _f)| {
+                            let ident_name = "field_".to_owned() + &i.to_string();
                             let ident = Ident::new(
-                                format!("field_{}", i).as_str(),
+                                &ident_name,
                                 call_site,
                             );
                             quote! {

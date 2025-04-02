@@ -1,0 +1,1 @@
+wasm-opt target/wasm32-unknown-unknown/release/pulse_token.wasm --output pulse_token.wasm -Oz

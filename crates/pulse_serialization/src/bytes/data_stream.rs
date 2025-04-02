@@ -1,4 +1,6 @@
-use std::ops::Deref;
+use core::ops::Deref;
+
+use alloc::vec::Vec;
 
 use super::{Read, ReadError, Write, WriteError};
 
@@ -11,6 +13,13 @@ pub struct DataStream {
 }
 
 impl DataStream {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            bytes: Vec::new(),
+            pos: 0,
+        }
+    }
     /// Read something from the stream
     ///
     /// # Errors
@@ -29,6 +38,10 @@ impl DataStream {
     #[allow(clippy::needless_pass_by_value)]
     #[inline]
     pub fn write<T: Write>(&mut self, thing: T) -> Result<(), WriteError> {
+        // Ensure the buffer is large enough
+        if self.bytes.len() < self.pos + thing.num_bytes() {
+            self.bytes.resize(self.pos + thing.num_bytes(), 0);
+        }
         thing.write(&mut self.bytes, &mut self.pos)
     }
 

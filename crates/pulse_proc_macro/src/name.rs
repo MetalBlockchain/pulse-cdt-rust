@@ -13,7 +13,7 @@ impl Parse for PulseName {
         let name = input.parse::<LitStr>()?.value();
         name_from_bytes(name.bytes())
             .map(Self)
-            .map_err(|e| input.error(e))
+            .map_err(|_e| input.error("failed to parse name"))
     }
 }
 

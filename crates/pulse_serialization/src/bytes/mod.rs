@@ -2,9 +2,9 @@ mod data_stream;
 mod primitives;
 
 pub use self::data_stream::DataStream;
+use alloc::vec::Vec;
+use alloc::vec;
 pub use pulse_proc_macro::{Read, Write, NumBytes};
-
-use core::fmt;
 
 /// Count the number of bytes a type is expected to use.
 pub trait NumBytes {
@@ -37,15 +37,7 @@ pub trait Read: Sized + NumBytes {
 pub enum ReadError {
     /// Not enough bytes.
     NotEnoughBytes,
-}
-
-impl fmt::Display for ReadError {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::NotEnoughBytes => write!(f, "not enough bytes"),
-        }
-    }
+    ParseError,
 }
 
 /// Write bytes.
@@ -66,6 +58,7 @@ pub trait Write: Sized + NumBytes {
     /// # Errors
     ///
     /// Will return `Err` if there was a problem writing the data.
+    #[inline]
     fn pack(&self) -> Result<Vec<u8>, WriteError> {
         let num_bytes = self.num_bytes();
         let mut bytes = vec![0_u8; num_bytes];
@@ -83,15 +76,4 @@ pub enum WriteError {
     TryFromIntError,
     /// Not enough bytes to read.
     NotEnoughBytes,
-}
-
-impl fmt::Display for WriteError {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::NotEnoughSpace => write!(f, "not enough space"),
-            Self::TryFromIntError => write!(f, "failed to parse int"),
-            Self::NotEnoughBytes => write!(f, "not enough bytes"),
-        }
-    }
 }

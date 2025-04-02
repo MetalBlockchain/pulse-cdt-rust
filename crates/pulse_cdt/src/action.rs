@@ -1,3 +1,4 @@
+use alloc::vec;
 use pulse::{Read, ReadError};
 
 mod action_impl {

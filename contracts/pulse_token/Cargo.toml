@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 pulse = { workspace = true }
 pulse_cdt = { workspace = true }
+wasm-snip = "0.4.0"
 
 [lib]
 crate-type = ["cdylib"]

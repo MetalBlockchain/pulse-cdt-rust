@@ -7,3 +7,8 @@ edition = "2021"
 pulse_proc_macro = { workspace = true }
 pulse_name = { workspace = true }
 pulse_serialization = { workspace = true }
+wee_alloc = "0.4.5"
+
+[profile.release]
+lto = true
+strip = true

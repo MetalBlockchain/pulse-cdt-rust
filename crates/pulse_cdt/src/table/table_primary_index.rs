@@ -1,7 +1,7 @@
-use core::marker::PhantomData;
-use std::{borrow::Borrow, ffi::c_void, ptr::null_mut};
-
-use pulse::{Name, NumBytes, Read, ReadError, Write, WriteError};
+use core::{borrow::Borrow, ffi::c_void, marker::PhantomData, ptr::null_mut};
+use alloc::vec::Vec;
+use alloc::vec;
+use pulse::{Name, NumBytes, ReadError, Write, WriteError};
 use crate::database::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64};
 use super::{Payer, Table, TableCursor};
 
@@ -35,7 +35,6 @@ where
     #[inline]
     fn erase(&self) -> Result<T::Row, ReadError> {
         let item = self.get()?;
-        let pk = T::primary_key(&item);
         db_remove_i64(self.value);
         Ok(item)
     }
@@ -71,7 +70,6 @@ where
     type IntoIter = PrimaryTableIterator<T>;
     type Item = Self;
 
-    #[must_use]
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         PrimaryTableIterator {

@@ -1,8 +1,7 @@
-use std::fmt::{self, Display};
-use proc_macro2::{Span, TokenStream};
-use quote::ToTokens;
+use alloc::vec::Vec;
+use proc_macro2::Span;
 use syn::{
-    parse::{Error as ParseError, Result as ParseResult}, Attribute, Ident, Lit, LitStr, Meta::{self, List}, NestedMeta, Path
+    Attribute, Ident, Lit, LitStr, Meta::{self, List}, NestedMeta, Path
 };
 
 #[derive(Copy, Clone)]
@@ -32,17 +31,7 @@ impl<'a> PartialEq<Symbol> for &'a Path {
     }
 }
 
-impl Display for Symbol {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(self.0)
-    }
-}
-
 pub const PULSE: Symbol = Symbol("pulse");
-pub const TABLE_NAME: Symbol = Symbol("table_name");
-pub const SINGLETON: Symbol = Symbol("singleton");
-pub const PRIMARY_KEY: Symbol = Symbol("primary_key");
-pub const SECONDARY_KEY: Symbol = Symbol("secondary_key");
 pub const CRATE_PATH: Symbol = Symbol("crate_path");
 
 pub fn get_pulse_meta_items(attr: &syn::Attribute) -> Result<Vec<syn::NestedMeta>, ()> {
@@ -84,62 +73,4 @@ pub fn get_root_path(attrs: &[Attribute]) -> Path {
     LitStr::new("::pulse", Span::call_site())
         .parse_with(Path::parse_mod_style)
         .unwrap()
-}
-
-pub struct Attr<T> {
-    name: Symbol,
-    tokens: TokenStream,
-    value: Option<T>,
-}
-
-impl<T> Attr<T> {
-    pub fn none(name: Symbol) -> Self {
-        Self {
-            name,
-            tokens: TokenStream::new(),
-            value: None,
-        }
-    }
-
-    pub fn set<A: ToTokens>(&mut self, obj: A, value: T) -> ParseResult<()> {
-        let tokens = obj.into_token_stream();
-
-        if self.value.is_some() {
-            Err(ParseError::new_spanned(
-                tokens,
-                format!("duplicate pulse attribute `{}`", self.name),
-            ))
-        } else {
-            self.tokens = tokens;
-            self.value = Some(value);
-            Ok(())
-        }
-    }
-
-    pub fn get(self) -> Option<T> {
-        self.value
-    }
-
-    pub fn get_with_tokens(self) -> Option<(TokenStream, T)> {
-        match self.value {
-            Some(v) => Some((self.tokens, v)),
-            None => None,
-        }
-    }
-}
-
-pub struct BoolAttr(Attr<()>);
-
-impl BoolAttr {
-    pub fn none(name: Symbol) -> Self {
-        Self(Attr::none(name))
-    }
-
-    pub fn set_true<A: ToTokens>(&mut self, obj: A) -> ParseResult<()> {
-        self.0.set(obj, ())
-    }
-
-    pub fn get(&self) -> bool {
-        self.0.value.is_some()
-    }
 }

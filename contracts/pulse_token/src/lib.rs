@@ -1,5 +1,5 @@
 use pulse::{action, dispatch, name, Asset, Name, NumBytes, Read, Write};
-use pulse_cdt::{assert::{self, check}, auth::{get_self, has_auth, is_account, require_auth, require_recipient}, table::{Payer, Table, TableCursor}};
+use pulse_cdt::{assert::check, auth::{get_self, has_auth, is_account, require_auth, require_recipient}, table::{Payer, Table, TableCursor}};
 
 #[derive(Read, Write, NumBytes, Clone)]
 pub struct Account {

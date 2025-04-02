@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -59,24 +60,12 @@ pub fn expand(input: TokenStream) -> TokenStream {
         #[no_mangle]
         #[inline]
         pub extern "C" fn apply(receiver: u64, code: u64, action: u64) {
-            /* std::panic::set_hook(Box::new(|panic_info| {
-                let payload = panic_info.payload();
-                let message = payload
-                    .downcast_ref::<&str>()
-                    .map(ToString::to_string)
-                    .or_else(|| payload.downcast_ref::<String>().map(ToString::to_string))
-                    .unwrap_or_else(|| panic_info.to_string());
-                pulse::assert(false, &message);
-            })); */
             if action == pulse::name!("onerror") {
-                assert!(
-                    code == pulse::name!("pulse"),
-                    "onerror action's are only valid from the \"pulse\" system account"
-                );
+                pulse_cdt::assert::check(false, "onerror action's are only valid from the \"pulse\" system account");
             }
             #(#actions)*
             else if code == receiver {
-                panic!("unknown action '{}'", pulse::Name::new(action));
+                pulse_cdt::assert::check(false, "unknown action");
             }
         }
     };

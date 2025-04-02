@@ -1,5 +1,6 @@
-use std::borrow::Borrow;
+use core::borrow::Borrow;
 
+use alloc::vec::Vec;
 use pulse::{DataStream, Name, NumBytes, Read, ReadError, Write, WriteError};
 use table_primary_index::PrimaryTableIndex;
 

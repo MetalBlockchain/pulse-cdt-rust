@@ -1,4 +1,22 @@
+use core::str;
+
+use alloc::{borrow::ToOwned, string::{String, ToString}};
+
 use super::{NumBytes, Read, ReadError, Write, WriteError};
+
+impl NumBytes for u8 {
+    #[inline]
+    fn num_bytes(&self) -> usize {
+        core::mem::size_of::<u8>()
+    }
+}
+
+impl NumBytes for i8 {
+    #[inline]
+    fn num_bytes(&self) -> usize {
+        core::mem::size_of::<u8>()
+    }
+}
 
 impl NumBytes for u16 {
     #[inline]
@@ -45,7 +63,34 @@ impl NumBytes for i64 {
 impl NumBytes for String {
     #[inline]
     fn num_bytes(&self) -> usize {
-        self.as_bytes().len()
+        self.len() + 2 // 2 bytes for length prefix
+    }
+}
+
+impl NumBytes for bool {
+    #[inline]
+    fn num_bytes(&self) -> usize {
+        core::mem::size_of::<u8>()
+    }
+}
+
+impl Read for u8 {
+    #[inline]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        if bytes.len() < *pos + core::mem::size_of::<u8>() {
+            return Err(ReadError::NotEnoughBytes);
+        }
+        let value = u8::from_be_bytes([bytes[*pos]]);
+        *pos += core::mem::size_of::<u8>();
+        Ok(value)
+    }
+}
+
+impl Read for i8 {
+    #[inline]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        let result = u8::read(bytes, pos).unwrap();
+        Ok(result as i8)
     }
 }
 
@@ -55,7 +100,7 @@ impl Read for u16 {
         if bytes.len() < *pos + core::mem::size_of::<u16>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u16::from_le_bytes([bytes[*pos], bytes[*pos + 1]]);
+        let value = u16::from_be_bytes([bytes[*pos], bytes[*pos + 1]]);
         *pos += core::mem::size_of::<u16>();
         Ok(value)
     }
@@ -75,7 +120,7 @@ impl Read for u32 {
         if bytes.len() < *pos + core::mem::size_of::<u32>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u32::from_le_bytes([
+        let value = u32::from_be_bytes([
             bytes[*pos],
             bytes[*pos + 1],
             bytes[*pos + 2],
@@ -100,7 +145,7 @@ impl Read for u64 {
         if bytes.len() < *pos + core::mem::size_of::<u64>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u64::from_le_bytes([
+        let value = u64::from_be_bytes([
             bytes[*pos],
             bytes[*pos + 1],
             bytes[*pos + 2],
@@ -126,17 +171,53 @@ impl Read for i64 {
 impl Read for String {
     #[inline]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let len = bytes.len();
-        if len < *pos {
+        // Read 2-byte length prefix (big endian)
+        let len = u16::read(bytes, pos).unwrap() as usize;
+    
+        if *pos + len > bytes.len() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let end = bytes[*pos..]
-            .iter()
-            .position(|&b| b == 0)
-            .unwrap_or(len - *pos);
-        let result = String::from_utf8_lossy(&bytes[*pos..*pos + end]);
-        *pos += end + 1;
-        Ok(result.to_string())
+    
+        let str_bytes = &bytes[*pos..*pos + len];
+        *pos += len;
+    
+        match str::from_utf8(str_bytes) {
+            Ok(s) => Ok(s.to_string()), // Into<String> in most contexts, still OK
+            Err(_) => Err(ReadError::ParseError),
+        }
+    }
+}
+
+impl Read for bool {
+    #[inline]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        let value = u8::read(bytes, pos).unwrap();
+        Ok(value != 0)
+    }
+}
+
+impl Write for u8 {
+    #[inline]
+    fn write(
+        &self,
+        bytes: &mut [u8],
+        pos: &mut usize,
+    ) -> Result<(), WriteError> {
+        let value = self.to_be_bytes();
+        bytes[*pos] = value[0];
+        *pos += value.len();
+        Ok(())
+    }
+}
+
+impl Write for i8 {
+    #[inline]
+    fn write(
+        &self,
+        bytes: &mut [u8],
+        pos: &mut usize,
+    ) -> Result<(), WriteError> {
+        (*self as u8).write(bytes, pos)
     }
 }
 
@@ -147,13 +228,10 @@ impl Write for u16 {
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        if bytes.len() < *pos + core::mem::size_of::<u16>() {
-            return Err(WriteError::NotEnoughBytes);
-        }
-        let value = self.to_le_bytes();
+        let value = self.to_be_bytes();
         bytes[*pos] = value[0];
         bytes[*pos + 1] = value[1];
-        *pos += core::mem::size_of::<u16>();
+        *pos += value.len();
         Ok(())
     }
 }
@@ -165,8 +243,7 @@ impl Write for i16 {
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        let result = u16::write(&(*self as u16), bytes, pos).unwrap();
-        Ok(result)
+        (*self as u16).write(bytes, pos)
     }
 }
 
@@ -177,10 +254,7 @@ impl Write for u32 {
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        if bytes.len() < *pos + core::mem::size_of::<u32>() {
-            return Err(WriteError::NotEnoughBytes);
-        }
-        let value = self.to_le_bytes();
+        let value = self.to_be_bytes();
         bytes[*pos] = value[0];
         bytes[*pos + 1] = value[1];
         bytes[*pos + 2] = value[2];
@@ -197,8 +271,7 @@ impl Write for i32 {
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        let result = u32::write(&(*self as u32), bytes, pos).unwrap();
-        Ok(result)
+        (*self as u32).write(bytes, pos)
     }
 }
 
@@ -209,10 +282,7 @@ impl Write for u64 {
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        if bytes.len() < *pos + core::mem::size_of::<u64>() {
-            return Err(WriteError::NotEnoughBytes);
-        }
-        let value = self.to_le_bytes();
+        let value = self.to_be_bytes();
         bytes[*pos] = value[0];
         bytes[*pos + 1] = value[1];
         bytes[*pos + 2] = value[2];
@@ -233,25 +303,35 @@ impl Write for i64 {
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        let result = u64::write(&(*self as u64), bytes, pos).unwrap();
-        Ok(result)
+        (*self as u64).write(bytes, pos)
     }
 }
 
-impl Write for String {
+impl<'a> Write for String {
     #[inline]
     fn write(
         &self,
         bytes: &mut [u8],
         pos: &mut usize,
     ) -> Result<(), WriteError> {
-        let len = self.as_bytes().len();
-        if bytes.len() < *pos + len + 1 {
-            return Err(WriteError::NotEnoughBytes);
+        let len = self.len() as u16;
+        len.write(bytes, pos).unwrap();
+        for i in 0..len {
+            bytes[*pos] = self.as_bytes()[i as usize];
+            *pos = pos.saturating_add(1);
         }
-        bytes[*pos..*pos + len].copy_from_slice(self.as_bytes());
-        bytes[*pos + len] = 0;
-        *pos += len + 1;
         Ok(())
+    }
+}
+
+impl Write for bool {
+    #[inline]
+    fn write(
+        &self,
+        bytes: &mut [u8],
+        pos: &mut usize,
+    ) -> Result<(), WriteError> {
+        let value = if *self { 1 } else { 0 };
+        (value as u8).write(bytes, pos)
     }
 }

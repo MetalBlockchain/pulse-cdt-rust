@@ -1,7 +1,9 @@
 use alloc::vec::Vec;
 use proc_macro2::Span;
 use syn::{
-    Attribute, Ident, Lit, LitStr, Meta::{self, List}, NestedMeta, Path
+    Attribute, Ident, Lit, LitStr,
+    Meta::{self, List},
+    NestedMeta, Path,
 };
 
 #[derive(Copy, Clone)]
@@ -48,29 +50,25 @@ pub fn get_pulse_meta_items(attr: &syn::Attribute) -> Result<Vec<syn::NestedMeta
 pub fn get_root_path(attrs: &[Attribute]) -> Path {
     for meta_item in attrs.iter().flat_map(get_pulse_meta_items).flatten() {
         match meta_item {
-            NestedMeta::Meta(Meta::NameValue(m)) if m.path == CRATE_PATH => {
-                match m.lit {
-                    Lit::Str(string) => {
-                        if let Ok(path) =
-                            string.parse_with(Path::parse_mod_style)
-                        {
-                            return path;
-                        } else {
-                            panic!(
-                                "`#[pulse(crate_path = \"...\")]` received an \
+            NestedMeta::Meta(Meta::NameValue(m)) if m.path == CRATE_PATH => match m.lit {
+                Lit::Str(string) => {
+                    if let Ok(path) = string.parse_with(Path::parse_mod_style) {
+                        return path;
+                    } else {
+                        panic!(
+                            "`#[pulse(crate_path = \"...\")]` received an \
                                  invalid path"
-                            );
-                        }
-                    }
-                    _ => {
-                        panic!("invalid pulse crate path");
+                        );
                     }
                 }
-            }
+                _ => {
+                    panic!("invalid pulse crate path");
+                }
+            },
             _ => continue,
         }
     }
-    LitStr::new("::pulse", Span::call_site())
+    LitStr::new("::pulse_cdt", Span::call_site())
         .parse_with(Path::parse_mod_style)
         .unwrap()
 }

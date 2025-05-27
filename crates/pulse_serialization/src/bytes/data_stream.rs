@@ -13,7 +13,7 @@ pub struct DataStream {
 }
 
 impl DataStream {
-    #[inline]
+    #[inline(always)]
     pub fn new() -> Self {
         Self {
             bytes: Vec::new(),
@@ -25,7 +25,7 @@ impl DataStream {
     /// # Errors
     ///
     /// Will return `Err` if there was a problem reading the data.
-    #[inline]
+    #[inline(always)]
     pub fn read<T: Read>(&mut self) -> Result<T, ReadError> {
         T::read(&self.bytes, &mut self.pos)
     }
@@ -36,7 +36,7 @@ impl DataStream {
     ///
     /// Will return `Err` if there was a problem writing the data.
     #[allow(clippy::needless_pass_by_value)]
-    #[inline]
+    #[inline(always)]
     pub fn write<T: Write>(&mut self, thing: T) -> Result<(), WriteError> {
         // Ensure the buffer is large enough
         if self.bytes.len() < self.pos + thing.num_bytes() {
@@ -46,34 +46,34 @@ impl DataStream {
     }
 
     /// Gets the remaining number of bytes
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     /// Gets remaining bytes as slice
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn as_remaining_bytes(&self) -> Option<&[u8]> {
         self.bytes.get(self.pos..)
     }
 
     /// Resets the data stream position
-    #[inline]
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.pos = 0;
     }
 
     /// Get the current position
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub const fn position(&self) -> usize {
         self.pos
     }
 
     /// Gets the remaining number of bytes
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn remaining(&self) -> usize {
         self.bytes.len() - self.pos
@@ -81,6 +81,7 @@ impl DataStream {
 }
 
 impl From<Vec<u8>> for DataStream {
+    #[inline(always)]
     #[must_use]
     fn from(bytes: Vec<u8>) -> Self {
         Self { bytes, pos: 0 }
@@ -88,6 +89,7 @@ impl From<Vec<u8>> for DataStream {
 }
 
 impl From<&[u8]> for DataStream {
+    #[inline(always)]
     #[must_use]
     fn from(bytes: &[u8]) -> Self {
         Self {
@@ -100,6 +102,7 @@ impl From<&[u8]> for DataStream {
 impl Deref for DataStream {
     type Target = [u8];
 
+    #[inline(always)]
     #[must_use]
     fn deref(&self) -> &Self::Target {
         self.as_bytes()
@@ -107,6 +110,7 @@ impl Deref for DataStream {
 }
 
 impl AsRef<[u8]> for DataStream {
+    #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
     }

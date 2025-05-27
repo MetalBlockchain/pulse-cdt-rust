@@ -1,4 +1,4 @@
-use pulse_serialization::{NumBytes, Read, Write};
+use pulse_proc_macro::{NumBytes, Read, Write};
 
 use super::symbol_code::SymbolCode;
 
@@ -16,7 +16,7 @@ impl Symbol {
     #[inline]
     #[must_use]
     pub const fn new_with_code(precision: u8, code: SymbolCode) -> Self {
-        Self(symbol_from_code(precision, code.as_u64()))
+        Self(symbol_from_code(precision, code.raw()))
     }
 
     #[inline]

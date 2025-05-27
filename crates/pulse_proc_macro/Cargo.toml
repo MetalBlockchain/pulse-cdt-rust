@@ -12,7 +12,7 @@ heck = "0.5.0"
 pulse_name = { workspace = true }
 
 [dev-dependencies]
-pulse = { version = ">= 0.1", path = "../pulse" }
+pulse_cdt = { version = ">= 0.1", path = "../pulse_cdt" }
 
 [lib]
 proc-macro = true

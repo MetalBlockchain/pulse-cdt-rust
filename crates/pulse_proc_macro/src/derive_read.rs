@@ -43,20 +43,19 @@ impl Parse for DeriveRead {
 impl ToTokens for DeriveRead {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = &self.ident;
-        let (impl_generics, ty_generics, where_clause) =
-            &self.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_clause) = &self.generics.split_for_impl();
         let root = &self.root_path;
         let call_site = ::proc_macro2::Span::call_site();
         let reads = match &self.data {
             Data::Struct(ref data) => match data.fields {
                 Fields::Named(ref fields) => {
                     let field_reads = fields.named.iter().map(|f| {
-                    let ident = &f.ident;
-                    let ty = &f.ty;
-                    quote_spanned! {f.span() =>
-                        let #ident = <#ty as #root::Read>::read(bytes, pos)?;
-                    }
-                });
+                        let ident = &f.ident;
+                        let ty = &f.ty;
+                        quote_spanned! {f.span() =>
+                            let #ident = <#ty as #root::Read>::read(bytes, pos)?;
+                        }
+                    });
                     let field_names = fields.named.iter().map(|f| {
                         let ident = &f.ident;
                         quote! {
@@ -73,24 +72,20 @@ impl ToTokens for DeriveRead {
                 }
                 Fields::Unnamed(ref fields) => {
                     let field_reads = fields.unnamed.iter().enumerate().map(|(i, f)| {
-                    let ty = &f.ty;
-                    let ident_name = "field_".to_owned() + &i.to_string();
-                    let ident = Ident::new(&ident_name, call_site);
-                    quote_spanned! {f.span() =>
-                        let #ident = <#ty as #root::Read>::read(bytes, pos)?;
-                    }
-                });
-                    let fields_list =
-                        fields.unnamed.iter().enumerate().map(|(i, _f)| {
-                            let ident_name = "field_".to_owned() + &i.to_string();
-                            let ident = Ident::new(
-                                &ident_name,
-                                call_site,
-                            );
-                            quote! {
-                                #ident,
-                            }
-                        });
+                        let ty = &f.ty;
+                        let ident_name = "field_".to_owned() + &i.to_string();
+                        let ident = Ident::new(&ident_name, call_site);
+                        quote_spanned! {f.span() =>
+                            let #ident = <#ty as #root::Read>::read(bytes, pos)?;
+                        }
+                    });
+                    let fields_list = fields.unnamed.iter().enumerate().map(|(i, _f)| {
+                        let ident_name = "field_".to_owned() + &i.to_string();
+                        let ident = Ident::new(&ident_name, call_site);
+                        quote! {
+                            #ident,
+                        }
+                    });
                     quote! {
                         #(#field_reads)*
                         let item = #name(

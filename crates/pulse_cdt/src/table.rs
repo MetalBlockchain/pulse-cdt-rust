@@ -1,7 +1,7 @@
-use core::borrow::Borrow;
+use core::borrow::BorrowMut;
 
+use crate::{core::name::Name, DataStream, NumBytes, Read, ReadError, Write, WriteError};
 use alloc::vec::Vec;
-use pulse::{DataStream, Name, NumBytes, Read, ReadError, Write, WriteError};
 use table_primary_index::PrimaryTableIndex;
 
 mod table_primary_index;
@@ -11,7 +11,7 @@ pub trait Table: Sized {
     const NAME: Name;
     type Key: Read + Write + NumBytes + Into<u64>;
     /// TODO docs
-    type Row: Read + Write + NumBytes;
+    type Row: Read + Write + NumBytes + Sized;
     /// TODO docs
     fn primary_key(row: &Self::Row) -> Self::Key;
     /// TODO docs
@@ -64,9 +64,8 @@ where
     /// # Errors
     ///
     /// Will return `Err` if there was an issue serializing the value.
-    fn modify<I: Borrow<T::Row>>(
-        &self,
-        item: I,
-        payer: Payer,
-    ) -> Result<usize, WriteError>;
+    fn modify<I, F>(&self, item: I, payer: Payer, modifier: F) -> Result<usize, WriteError>
+    where
+        I: BorrowMut<T::Row>,
+        F: FnOnce(&mut T::Row);
 }

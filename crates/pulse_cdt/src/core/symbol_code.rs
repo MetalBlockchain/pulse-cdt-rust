@@ -1,23 +1,10 @@
-use core::str::FromStr;
-
 use pulse_proc_macro::{NumBytes, Read, Write};
 
 /// The maximum allowed length of Pulse symbol codes.
 pub const SYMBOL_CODE_MAX_LEN: usize = 7;
 
 #[derive(
-    Debug,
-    PartialEq,
-    Eq,
-    Clone,
-    Copy,
-    Default,
-    Read,
-    Write,
-    NumBytes,
-    Hash,
-    PartialOrd,
-    Ord,
+    Debug, PartialEq, Eq, Clone, Copy, Default, Read, Write, NumBytes, Hash, PartialOrd, Ord,
 )]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct SymbolCode(u64);
@@ -70,17 +57,8 @@ impl SymbolCode {
     /// TODO docs
     #[inline]
     #[must_use]
-    pub const fn as_u64(&self) -> u64 {
+    pub const fn raw(&self) -> u64 {
         self.0
-    }
-}
-
-impl FromStr for SymbolCode {
-    type Err = ParseSymbolCodeError;
-
-    #[inline]
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        symbol_code_from_bytes(value.bytes()).map(Into::into)
     }
 }
 

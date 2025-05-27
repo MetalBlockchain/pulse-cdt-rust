@@ -44,8 +44,7 @@ impl ToTokens for DeriveWrite {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let root = &self.root_path;
         let name = &self.ident;
-        let (impl_generics, ty_generics, where_clause) =
-            self.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         let call_site = ::proc_macro2::Span::call_site();
         let var = quote!(self);
         let writes = match &self.data {
@@ -64,18 +63,16 @@ impl ToTokens for DeriveWrite {
                     }
                 }
                 Fields::Unnamed(ref fields) => {
-                    let recurse =
-                        fields.unnamed.iter().enumerate().map(|(i, f)| {
-                            let index = Index {
-                                index: i as u32,
-                                span: call_site,
-                            };
-                            let access =
-                                quote_spanned!(call_site => #var.#index);
-                            quote_spanned! { f.span() =>
-                                #root::Write::write(&#access, bytes, pos)?;
-                            }
-                        });
+                    let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                        let index = Index {
+                            index: i as u32,
+                            span: call_site,
+                        };
+                        let access = quote_spanned!(call_site => #var.#index);
+                        quote_spanned! { f.span() =>
+                            #root::Write::write(&#access, bytes, pos)?;
+                        }
+                    });
                     quote! {
                         #(#recurse)*
                         Ok(())

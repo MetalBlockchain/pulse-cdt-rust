@@ -3,14 +3,10 @@ extern crate alloc;
 
 mod bytes;
 
-pub use self::bytes::{
-    DataStream, NumBytes, Read, ReadError, Write, WriteError,
-};
+pub use self::bytes::{DataStream, NumBytes, Read, ReadError, Write, WriteError};
 
 #[cfg(test)]
 mod tests {
-    use crate::NumBytes;
-
     use super::bytes::Read;
     use alloc::{borrow::ToOwned, string::String};
 

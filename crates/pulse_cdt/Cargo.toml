@@ -4,4 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-pulse = { version = ">= 0.1", path = "../pulse" }
+pulse_serialization = { workspace = true }
+pulse_proc_macro = { workspace = true }
+pulse_name = { workspace = true }
+
+lol_alloc = "0.4.1"
+
+[profile.release]
+panic = "abort"

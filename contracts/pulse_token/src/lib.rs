@@ -1,5 +1,16 @@
-use pulse::{action, dispatch, name, Asset, Name, NumBytes, Read, Write};
-use pulse_cdt::{assert::check, auth::{get_self, has_auth, is_account, require_auth, require_recipient}, table::{Payer, Table, TableCursor}};
+#![no_std]
+#![no_main]
+extern crate alloc;
+use alloc::string::String;
+
+use pulse_cdt::{
+    action,
+    contracts::{get_self, has_auth, is_account, require_auth, require_recipient},
+    core::{asset::Asset, check, name::Name, symbol::Symbol},
+    dispatch, name,
+    table::{Payer, Table, TableCursor},
+    NumBytes, Read, Write,
+};
 
 #[derive(Read, Write, NumBytes, Clone)]
 pub struct Account {
@@ -12,7 +23,7 @@ impl Table for Account {
     type Row = Self;
 
     fn primary_key(row: &Self::Row) -> u64 {
-        row.balance.symbol.code().as_u64()
+        row.balance.symbol.code().raw()
     }
 }
 
@@ -29,7 +40,7 @@ impl Table for CurrencyStats {
     type Row = Self;
 
     fn primary_key(row: &Self::Row) -> u64 {
-        row.supply.symbol.code().as_u64()
+        row.supply.symbol.code().raw()
     }
 }
 
@@ -42,14 +53,26 @@ fn create(issuer: Name, max_supply: Asset) {
     check(max_supply.is_valid(), "invalid supply");
     check(max_supply.amount > 0, "max-supply must be positive");
 
-    let stats_table = CurrencyStats::table(get_self(), sym.code().as_u64());
-    check(stats_table.find(sym.code().as_u64()).is_none(), "token with symbol already exists");
+    let stats_table = CurrencyStats::table(get_self(), sym.code().raw());
+    check(
+        stats_table.find(sym.code().raw()).is_none(),
+        "token with symbol already exists",
+    );
 
-    stats_table.emplace(get_self(), CurrencyStats {
-        supply: Asset { amount: 0, symbol: sym },
-        max_supply: Asset{ amount: 0, symbol: sym},
-        issuer,
-    });
+    stats_table.emplace(
+        get_self(),
+        CurrencyStats {
+            supply: Asset {
+                amount: 0,
+                symbol: sym,
+            },
+            max_supply: Asset {
+                amount: 0,
+                symbol: sym,
+            },
+            issuer,
+        },
+    );
 }
 
 #[action]
@@ -58,8 +81,10 @@ fn issue(to: Name, quantity: Asset, memo: String) {
     check(sym.is_valid(), "invalid symbol name");
     check(memo.len() <= 256, "memo has more than 256 bytes");
 
-    let stats_table = CurrencyStats::table(get_self(), sym.code().as_u64());
-    let existing = stats_table.find(sym.code().as_u64()).expect("token with symbol does not exist, create token before issue");
+    let stats_table = CurrencyStats::table(get_self(), sym.code().raw());
+    let existing = stats_table
+        .find(sym.code().raw())
+        .expect("token with symbol does not exist, create token before issue");
     let mut st = existing.get().expect("failed to read stats");
     check(st.issuer == to, "must be issuer to issue");
 
@@ -67,23 +92,63 @@ fn issue(to: Name, quantity: Asset, memo: String) {
     check(quantity.is_valid(), "invalid quantity");
     check(quantity.amount > 0, "must issue positive quantity");
 
-    check(quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
-    check(quantity.amount <= st.max_supply.amount - st.supply.amount, "quantity exceeds available supply");
+    check(
+        quantity.symbol == st.supply.symbol,
+        "symbol precision mismatch",
+    );
+    check(
+        quantity.amount <= st.max_supply.amount - st.supply.amount,
+        "quantity exceeds available supply",
+    );
 
-    st.supply.amount += quantity.amount;
-    existing.modify(&mut st, Payer::Same).expect("failed to modify stats");
+    existing
+        .modify(&mut st, Payer::Same, |s| {
+            s.supply.amount += quantity.amount;
+        })
+        .expect("failed to modify stats");
 
     add_balance(st.issuer, quantity, st.issuer);
 }
 
 #[action]
+fn retire(quantity: Asset, memo: String) {
+    let sym = quantity.symbol;
+    check(sym.is_valid(), "invalid symbol name");
+    check(memo.len() <= 256, "memo has more than 256 bytes");
+
+    let stats_table = CurrencyStats::table(get_self(), sym.code().raw());
+    let existing = stats_table
+        .find(sym.code().raw())
+        .expect("token with symbol does not exist");
+    let mut st = existing.get().unwrap();
+
+    require_auth(st.issuer);
+    check(quantity.is_valid(), "invalid quantity");
+    check(quantity.amount > 0, "must retire positive quantity");
+    check(
+        quantity.symbol == st.supply.symbol,
+        "symbol precision mismatch",
+    );
+
+    existing
+        .modify(&mut st, Payer::Same, |s| {
+            s.supply -= quantity;
+        })
+        .expect("failed to modify stats");
+
+    sub_balance(st.issuer, quantity);
+}
+
+#[action]
 fn transfer(from: Name, to: Name, quantity: Asset, memo: String) {
-    check(from != to, "cannot transfer to self" );
+    check(from != to, "cannot transfer to self");
     require_auth(from);
     check(is_account(to), "to account does not exist");
     let sym = quantity.symbol.code();
-    let stats_table = CurrencyStats::table(get_self(), sym.as_u64());
-    let existing = stats_table.find(sym.as_u64()).expect("token with symbol does not exist, create token before issue");
+    let stats_table = CurrencyStats::table(get_self(), sym.raw());
+    let existing = stats_table
+        .find(sym.raw())
+        .expect("token with symbol does not exist, create token before issue");
     let st = existing.get().expect("failed to read stats");
 
     require_recipient(from);
@@ -91,7 +156,10 @@ fn transfer(from: Name, to: Name, quantity: Asset, memo: String) {
 
     check(quantity.is_valid(), "invalid quantity");
     check(quantity.amount > 0, "must transfer positive quantity");
-    check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
+    check(
+        quantity.symbol == st.supply.symbol,
+        "symbol precision mismatch",
+    );
     check(memo.len() <= 256, "memo has more than 256 bytes");
 
     let payer = if has_auth(to) { to } else { from };
@@ -100,30 +168,76 @@ fn transfer(from: Name, to: Name, quantity: Asset, memo: String) {
     add_balance(to, quantity, payer);
 }
 
+#[action]
+fn open(owner: Name, symbol: Symbol, ram_payer: Name) {
+    require_auth(ram_payer);
+    check(is_account(owner), "owner account does not exist");
+
+    let sym_code_raw = symbol.code().raw();
+    let stats_table = CurrencyStats::table(get_self(), sym_code_raw);
+    let st = stats_table
+        .find(sym_code_raw)
+        .expect("symbol does not exist")
+        .get()
+        .expect("failed to read stats");
+    check(st.supply.symbol == symbol, "symbol precision mismatch");
+
+    let accounts = Account::table(get_self(), owner);
+    let it = accounts.find(sym_code_raw);
+    if it.is_none() {
+        accounts.emplace(
+            ram_payer,
+            Account {
+                balance: Asset { amount: 0, symbol },
+            },
+        );
+    }
+}
+
+#[action]
+fn close(owner: Name, symbol: Symbol) {
+    require_auth(owner);
+    let accounts = Account::table(get_self(), owner);
+    let it = accounts
+        .find(symbol.code().raw())
+        .expect("balance row already deleted or never existed. action won't have any effect.");
+    let existing = it.get().expect("failed to read account");
+    check(
+        existing.balance.amount == 0,
+        "cannot close because the balance is not zero.",
+    );
+    it.erase().expect("failed to erase account");
+}
+
 fn sub_balance(owner: Name, value: Asset) {
     let accounts = Account::table(get_self(), owner);
-    let existing = accounts.find(value.symbol.code().as_u64())
-    .expect("no balance object found");
+    let existing = accounts
+        .find(value.symbol.code().raw())
+        .expect("no balance object found");
 
     let mut from = existing.get().expect("failed to read account");
-    from.balance.amount -= value.amount;
-    existing.modify(&mut from, Payer::New(owner)).expect("failed to modify account");
+    existing
+        .modify(&mut from, Payer::New(owner), |a| {
+            a.balance -= value;
+        })
+        .expect("failed to modify account");
 }
 
 fn add_balance(owner: Name, value: Asset, payer: Name) {
     let accounts = Account::table(get_self(), owner);
-    let to = accounts.find(value.symbol.code().as_u64());
+    let to = accounts.find(value.symbol.code().raw());
 
     if to.is_none() {
-        accounts.emplace(payer, Account {
-            balance: value,
-        });
+        accounts.emplace(payer, Account { balance: value });
     } else {
         let existing = to.unwrap();
         let mut account = existing.get().expect("failed to read account");
-        account.balance.amount += value.amount;
-        existing.modify(&mut account, Payer::Same).expect("failed to modify account");
+        existing
+            .modify(&mut account, Payer::Same, |a| {
+                a.balance += value;
+            })
+            .expect("failed to modify account");
     }
 }
 
-dispatch!(create, issue, transfer);
+dispatch!(create, issue, retire, transfer, open, close);

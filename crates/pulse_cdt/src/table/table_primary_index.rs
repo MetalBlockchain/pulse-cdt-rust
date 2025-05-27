@@ -1,9 +1,17 @@
-use core::{borrow::Borrow, ffi::c_void, marker::PhantomData, ptr::null_mut};
-use alloc::vec::Vec;
-use alloc::vec;
-use pulse::{Name, NumBytes, ReadError, Write, WriteError};
-use crate::database::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64};
 use super::{Payer, Table, TableCursor};
+use crate::{
+    core::name::Name,
+    database::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64},
+};
+use alloc::vec;
+use alloc::vec::Vec;
+use core::{
+    borrow::{Borrow, BorrowMut},
+    ffi::c_void,
+    marker::PhantomData,
+    ptr::null_mut,
+};
+use pulse_serialization::{NumBytes, ReadError, Write, WriteError};
 
 #[derive(Copy, Clone, Debug)]
 pub struct PrimaryTableCursor<T>
@@ -40,12 +48,13 @@ where
     }
 
     #[inline]
-    fn modify<I: Borrow<T::Row>>(
-        &self,
-        item: I,
-        payer: Payer,
-    ) -> Result<usize, WriteError> {
-        let item = item.borrow();
+    fn modify<I, F>(&self, mut item: I, payer: Payer, modifier: F) -> Result<usize, WriteError>
+    where
+        I: BorrowMut<T::Row>,
+        F: FnOnce(&mut T::Row),
+    {
+        let item = item.borrow_mut();
+        modifier(item);
         let size = item.num_bytes();
         let mut bytes = vec![0_u8; size];
         let mut pos = 0;
@@ -175,7 +184,8 @@ where
         let size = item.num_bytes();
         let mut bytes = vec![0_u8; size];
         let mut pos = 0;
-        item.write(&mut bytes, &mut pos).expect("failed to write item");
+        item.write(&mut bytes, &mut pos)
+            .expect("failed to write item");
         let ptr: *const c_void = &bytes[..] as *const _ as *const c_void;
         db_store_i64(self.scope, T::NAME, payer, id.into(), ptr, pos as u32)
     }

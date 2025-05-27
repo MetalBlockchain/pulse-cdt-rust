@@ -2,9 +2,9 @@ mod data_stream;
 mod primitives;
 
 pub use self::data_stream::DataStream;
-use alloc::vec::Vec;
 use alloc::vec;
-pub use pulse_proc_macro::{Read, Write, NumBytes};
+use alloc::vec::Vec;
+pub use pulse_proc_macro::{NumBytes, Read, Write};
 
 /// Count the number of bytes a type is expected to use.
 pub trait NumBytes {
@@ -26,7 +26,7 @@ pub trait Read: Sized + NumBytes {
     /// # Errors
     ///
     /// Will return `Err` if there was a problem reading the data.
-    #[inline]
+    #[inline(always)]
     fn unpack<T: AsRef<[u8]>>(bytes: T) -> Result<Self, ReadError> {
         Self::read(bytes.as_ref(), &mut 0)
     }
@@ -47,18 +47,14 @@ pub trait Write: Sized + NumBytes {
     /// # Errors
     ///
     /// Will return `Err` if there was a problem writing the data.
-    fn write(
-        &self,
-        bytes: &mut [u8],
-        pos: &mut usize,
-    ) -> Result<(), WriteError>;
+    fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError>;
 
     /// Serializes data into a byte vector.
     ///
     /// # Errors
     ///
     /// Will return `Err` if there was a problem writing the data.
-    #[inline]
+    #[inline(always)]
     fn pack(&self) -> Result<Vec<u8>, WriteError> {
         let num_bytes = self.num_bytes();
         let mut bytes = vec![0_u8; num_bytes];

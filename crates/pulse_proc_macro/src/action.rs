@@ -42,10 +42,7 @@ impl ActionFn {
         if let Some(lit) = &self.args.name {
             lit.clone()
         } else {
-            LitStr::new(
-                self.sig.ident.to_string().as_str(),
-                self.sig.ident.span(),
-            )
+            LitStr::new(self.sig.ident.to_string().as_str(), self.sig.ident.span())
         }
     }
 }
@@ -75,12 +72,15 @@ impl ToTokens for ActionFn {
         let block = &self.block;
 
         let struct_ident_name = self.struct_ident().to_string() + "Wrapper";
-        let struct_ident = Ident::new(&struct_ident_name.to_upper_camel_case().as_str(), self.sig.ident.span());
+        let struct_ident = Ident::new(
+            &struct_ident_name.to_upper_camel_case().as_str(),
+            self.sig.ident.span(),
+        );
         let type_ident = &self.sig.ident;
         let action_name = self.action_name();
 
         let expanded = quote! {
-            #[derive(Clone, pulse::Read, pulse::NumBytes)]
+            #[derive(Clone, pulse_cdt::Read, pulse_cdt::NumBytes)]
             pub struct #struct_ident {
                 #struct_fields
             }
@@ -90,8 +90,8 @@ impl ToTokens for ActionFn {
             pub type #type_ident = #struct_ident;
 
             #[automatically_derived]
-            impl pulse::ActionFn for #struct_ident {
-                const NAME: pulse::Name = pulse::Name::new(pulse::name!(#action_name));
+            impl pulse_cdt::contracts::ActionFn for #struct_ident {
+                const NAME: pulse_cdt::core::name::Name = pulse_cdt::core::name::Name::new(pulse_cdt::name!(#action_name));
                 fn call(self) {
                     #assign_args
                     #block

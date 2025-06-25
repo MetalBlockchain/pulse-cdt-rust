@@ -1,10 +1,8 @@
 use core::borrow::BorrowMut;
 
+use super::PrimaryTableIndex;
 use crate::{core::name::Name, DataStream, NumBytes, Read, ReadError, Write, WriteError};
 use alloc::vec::Vec;
-use table_primary_index::PrimaryTableIndex;
-
-mod table_primary_index;
 
 pub trait Table: Sized {
     /// TODO docs

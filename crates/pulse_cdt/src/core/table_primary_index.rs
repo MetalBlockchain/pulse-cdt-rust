@@ -1,7 +1,7 @@
 use super::{Payer, Table, TableCursor};
 use crate::{
+    contracts::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64},
     core::name::Name,
-    database::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64},
 };
 use alloc::vec;
 use alloc::vec::Vec;
@@ -33,7 +33,7 @@ where
         let nullptr: *mut c_void = null_mut() as *mut _ as *mut c_void;
         let size = db_get_i64(self.value, nullptr, 0);
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let mut bytes = vec![0_u8; size as usize];
+        let mut bytes = vec![0u8; size as usize];
         let ptr: *mut c_void = &mut bytes[..] as *mut _ as *mut c_void;
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         db_get_i64(self.value, ptr, size as u32);

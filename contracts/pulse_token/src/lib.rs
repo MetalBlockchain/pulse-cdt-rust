@@ -5,11 +5,11 @@ use alloc::string::String;
 
 use pulse_cdt::{
     action,
-    contracts::{get_self, has_auth, is_account, require_auth, require_recipient},
-    core::{asset::Asset, check, name::Name, symbol::Symbol},
-    dispatch, name,
-    table::{Payer, Table, TableCursor},
-    NumBytes, Read, Write,
+    contracts::{
+        get_resource_limits, get_self, has_auth, is_account, require_auth, require_recipient,
+    },
+    core::{check, Asset, Name, Payer, Symbol, Table, TableCursor},
+    dispatch, name, NumBytes, Read, Write,
 };
 
 #[derive(Read, Write, NumBytes, Clone)]
@@ -52,6 +52,8 @@ fn create(issuer: Name, max_supply: Asset) {
     check(sym.is_valid(), "invalid symbol name");
     check(max_supply.is_valid(), "invalid supply");
     check(max_supply.amount > 0, "max-supply must be positive");
+
+    get_resource_limits(get_self());
 
     let stats_table = CurrencyStats::table(get_self(), sym.code().raw());
     check(
@@ -220,7 +222,7 @@ fn sub_balance(owner: Name, value: Asset) {
         .modify(&mut from, Payer::New(owner), |a| {
             a.balance -= value;
         })
-        .expect("failed to modify account");
+        .unwrap();
 }
 
 fn add_balance(owner: Name, value: Asset, payer: Name) {
@@ -231,12 +233,12 @@ fn add_balance(owner: Name, value: Asset, payer: Name) {
         accounts.emplace(payer, Account { balance: value });
     } else {
         let existing = to.unwrap();
-        let mut account = existing.get().expect("failed to read account");
+        let mut account = existing.get().unwrap();
         existing
             .modify(&mut account, Payer::Same, |a| {
                 a.balance += value;
             })
-            .expect("failed to modify account");
+            .unwrap();
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::core::name::Name;
+use crate::core::Name;
 
 mod database_impl {
     extern "C" {

@@ -7,9 +7,6 @@ use ::core::panic::PanicInfo;
 pub mod contracts;
 pub mod core;
 
-pub mod database;
-pub mod table;
-
 pub use ::core::ffi::c_char;
 pub use ::core::ffi::c_void;
 

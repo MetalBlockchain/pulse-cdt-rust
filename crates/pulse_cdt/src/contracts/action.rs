@@ -2,7 +2,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use pulse_serialization::{Read, ReadError};
 
-use crate::core::name::Name;
+use crate::core::Name;
 
 mod action_impl {
     extern "C" {

@@ -1,6 +1,5 @@
 use core::cmp::PartialEq;
 
-use pulse_name::{name_from_bytes, ParseNameError};
 use pulse_serialization::{NumBytes, Read, Write};
 
 #[derive(

@@ -1,14 +1,14 @@
 #![no_std]
 #![no_main]
 extern crate alloc;
-use alloc::string::String;
+use alloc::{borrow::ToOwned, string::String};
 
 use pulse_cdt::{
     action,
     contracts::{
-        get_resource_limits, get_self, has_auth, is_account, require_auth, require_recipient,
+        get_self, has_auth, is_account, require_auth, require_recipient,
     },
-    core::{check, Asset, Name, Payer, Symbol, Table, TableCursor},
+    core::{check, Asset, Name, Payer, Symbol, Table, TableCursor, MAX_ASSET_AMOUNT},
     dispatch, name, NumBytes, Read, Write,
 };
 
@@ -53,8 +53,6 @@ fn create(issuer: Name, max_supply: Asset) {
     check(max_supply.is_valid(), "invalid supply");
     check(max_supply.amount > 0, "max-supply must be positive");
 
-    get_resource_limits(get_self());
-
     let stats_table = CurrencyStats::table(get_self(), sym.code().raw());
     check(
         stats_table.find(sym.code().raw()).is_none(),
@@ -88,7 +86,7 @@ fn issue(to: Name, quantity: Asset, memo: String) {
         .find(sym.code().raw())
         .expect("token with symbol does not exist, create token before issue");
     let mut st = existing.get().expect("failed to read stats");
-    check(st.issuer == to, "must be issuer to issue");
+    check( to == st.issuer, "tokens can only be issued to issuer account" );
 
     require_auth(st.issuer);
     check(quantity.is_valid(), "invalid quantity");
@@ -98,10 +96,7 @@ fn issue(to: Name, quantity: Asset, memo: String) {
         quantity.symbol == st.supply.symbol,
         "symbol precision mismatch",
     );
-    check(
-        quantity.amount <= st.max_supply.amount - st.supply.amount,
-        "quantity exceeds available supply",
-    );
+    check( quantity.amount + st.supply.amount <= MAX_ASSET_AMOUNT, "quantity exceeds available supply");
 
     existing
         .modify(&mut st, Payer::Same, |s| {
@@ -221,8 +216,7 @@ fn sub_balance(owner: Name, value: Asset) {
     existing
         .modify(&mut from, Payer::New(owner), |a| {
             a.balance -= value;
-        })
-        .unwrap();
+        }).expect("failed to subtract account balance");
 }
 
 fn add_balance(owner: Name, value: Asset, payer: Name) {
@@ -238,7 +232,7 @@ fn add_balance(owner: Name, value: Asset, payer: Name) {
             .modify(&mut account, Payer::Same, |a| {
                 a.balance += value;
             })
-            .unwrap();
+            .expect("failed to add account balance");
     }
 }
 

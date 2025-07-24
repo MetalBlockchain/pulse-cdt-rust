@@ -186,7 +186,6 @@ where
         let mut pos = 0;
         item.write(&mut bytes, &mut pos)
             .expect("failed to write item");
-        let ptr: *const c_void = &bytes[..] as *const _ as *const c_void;
-        db_store_i64(self.scope, T::NAME, payer, id.into(), ptr, pos as u32)
+        db_store_i64(self.scope, T::NAME, payer, id.into(), &bytes[..], pos as u32);
     }
 }

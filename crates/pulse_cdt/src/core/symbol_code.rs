@@ -11,7 +11,6 @@ pub struct SymbolCode(u64);
 
 impl From<u64> for SymbolCode {
     #[inline]
-    #[must_use]
     fn from(n: u64) -> Self {
         Self(n)
     }

@@ -6,7 +6,9 @@ members = [
     "contracts/pulse_token",
     "crates/pulse_name",
     "crates/pulse_proc_macro",
-    "crates/pulse_serialization"
+    "crates/pulse_serialization",
+    "test-contracts",
+    "test-contracts/test_api_db"
 ]
 
 [workspace.dependencies]

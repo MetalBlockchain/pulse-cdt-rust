@@ -89,7 +89,7 @@ impl Read for u8 {
 impl Read for i8 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let result = u8::read(bytes, pos).unwrap();
+        let result = u8::read(bytes, pos).expect("failed to read u8");
         Ok(result as i8)
     }
 }
@@ -109,7 +109,7 @@ impl Read for u16 {
 impl Read for i16 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let result = u16::read(bytes, pos).unwrap();
+        let result = u16::read(bytes, pos).expect("failed to read u16");
         Ok(result as i16)
     }
 }
@@ -134,7 +134,7 @@ impl Read for u32 {
 impl Read for i32 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let result = u32::read(bytes, pos).unwrap();
+        let result = u32::read(bytes, pos).expect("failed to read u32");
         Ok(result as i32)
     }
 }
@@ -163,7 +163,7 @@ impl Read for u64 {
 impl Read for i64 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let result = u64::read(bytes, pos).unwrap();
+        let result = u64::read(bytes, pos).expect("failed to read u64");
         Ok(result as i64)
     }
 }
@@ -172,7 +172,7 @@ impl Read for String {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
         // Read 2-byte length prefix (big endian)
-        let len = u16::read(bytes, pos).unwrap() as usize;
+        let len = u16::read(bytes, pos).expect("failed to read u16") as usize;
 
         if *pos + len > bytes.len() {
             return Err(ReadError::NotEnoughBytes);
@@ -191,7 +191,7 @@ impl Read for String {
 impl Read for bool {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let value = u8::read(bytes, pos).unwrap();
+        let value = u8::read(bytes, pos).expect("failed to read u8");
         Ok(value != 0)
     }
 }
@@ -279,7 +279,7 @@ impl<'a> Write for String {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
         let len = self.len() as u16;
-        len.write(bytes, pos).unwrap();
+        len.write(bytes, pos).expect("failed to write length");
         for i in 0..len {
             bytes[*pos] = self.as_bytes()[i as usize];
             *pos = pos.saturating_add(1);

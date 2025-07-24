@@ -1,7 +1,7 @@
 mod assert_impl {
     extern "C" {
         #[link_name = "pulse_assert"]
-        pub fn pulse_assert(test: u32, msg: *const crate::c_char, msg_len: u32);
+        pub fn pulse_assert(test: u32, msg: *const crate::c_char, msg_len: usize);
     }
 }
 
@@ -9,8 +9,6 @@ mod assert_impl {
 pub fn check(pred: bool, msg: &str) {
     if !pred {
         let msg_ptr = msg.as_ptr() as *const i8;
-        #[allow(clippy::cast_possible_truncation)]
-        let msg_len = msg.len() as u32;
-        unsafe { assert_impl::pulse_assert(0, msg_ptr, msg_len) }
+        unsafe { assert_impl::pulse_assert(0, msg_ptr, msg.len()) }
     }
 }

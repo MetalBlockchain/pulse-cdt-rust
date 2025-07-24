@@ -23,6 +23,12 @@ static ALLOCATOR: AssumeSingleThreaded<LeakingAllocator> =
 
 #[cfg(target_arch = "wasm32")]
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(panic_info: &PanicInfo) -> ! {
+    let s = panic_info.message().as_str();
+    if let Some(s) = s {
+        core::check(false, s);
+    } else {
+        core::check(false, "panic without message");
+    }
     ::core::arch::wasm32::unreachable()
 }

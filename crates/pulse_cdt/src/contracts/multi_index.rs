@@ -25,7 +25,7 @@ mod database_impl {
             id: u64,
             data: *const crate::c_void,
             len: u32,
-        );
+        ) -> i32;
 
         #[link_name = "db_find_i64"]
         pub fn db_find_i64(code: u64, scope: u64, table: u64, id: u64) -> i32;
@@ -69,16 +69,16 @@ pub fn db_store_i64(
     table: Name,
     payer: Name,
     id: u64,
-    data: *const crate::c_void,
+    data: &[u8],
     len: u32,
-) {
+) -> i32 {
     unsafe {
         database_impl::db_store_i64(
             scope.as_u64(),
             table.as_u64(),
             payer.as_u64(),
             id,
-            data,
+            data as *const _ as *const crate::c_void,
             len,
         )
     }

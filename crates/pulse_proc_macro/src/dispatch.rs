@@ -57,7 +57,6 @@ pub fn expand(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
-        #[inline]
         pub extern "C" fn apply(receiver: u64, code: u64, action: u64) {
             if action == pulse_cdt::name!("onerror") {
                 pulse_cdt::core::check(false, "onerror action's are only valid from the \"pulse\" system account");

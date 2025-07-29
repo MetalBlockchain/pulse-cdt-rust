@@ -35,6 +35,9 @@ mod database_impl {
 
         #[link_name = "db_lowerbound_i64"]
         pub fn db_lowerbound_i64(code: u64, scope: u64, table: u64, id: u64) -> i32;
+
+        #[link_name = "db_upperbound_i64"]
+        pub fn db_upperbound_i64(code: u64, scope: u64, table: u64, id: u64) -> i32;
     }
 }
 
@@ -99,4 +102,9 @@ pub fn db_end_i64(code: Name, scope: Name, table: Name) -> i32 {
 #[inline]
 pub fn db_lowerbound_i64(code: Name, scope: Name, table: Name, id: u64) -> i32 {
     unsafe { database_impl::db_lowerbound_i64(code.as_u64(), scope.as_u64(), table.as_u64(), id) }
+}
+
+#[inline]
+pub fn db_upperbound_i64(code: Name, scope: Name, table: Name, id: u64) -> i32 {
+    unsafe { database_impl::db_upperbound_i64(code.as_u64(), scope.as_u64(), table.as_u64(), id) }
 }

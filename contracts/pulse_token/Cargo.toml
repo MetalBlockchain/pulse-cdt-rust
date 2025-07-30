@@ -7,6 +7,11 @@ edition = "2021"
 pulse_cdt = { workspace = true }
 wasm-snip = "0.4.0"
 
+[build-dependencies]
+syn = { version = "1", features = ["full"] }
+quote = "1.0"
+serde_json = "1.0"
+
 [lib]
 crate-type = ["cdylib"]
 

@@ -1,6 +1,7 @@
 #![no_std]
 extern crate alloc;
 
+use alloc::vec;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn};

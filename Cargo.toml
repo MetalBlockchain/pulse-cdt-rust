@@ -4,6 +4,7 @@ members = [
     "crates/pulse_cdt",
     "contracts",
     "contracts/pulse_token",
+    "contracts/pulse_system",
     "crates/pulse_name",
     "crates/pulse_proc_macro",
     "crates/pulse_serialization",
@@ -16,6 +17,7 @@ pulse_cdt = { version = "=0.1.0", path = "crates/pulse_cdt", default-features = 
 pulse_proc_macro = { version = "=0.1.0", path = "crates/pulse_proc_macro", default-features = false }
 pulse_name = { version = "=0.1.0", path = "crates/pulse_name", default-features = false }
 pulse_serialization = { version = "=0.1.0", path = "crates/pulse_serialization", default-features = false }
+pulse_token = { version = "=0.1.0", path = "contracts/pulse_token", default-features = false }
 
 [profile.release]
 opt-level = "z"

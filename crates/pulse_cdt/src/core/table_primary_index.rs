@@ -1,7 +1,7 @@
 use super::{Payer, Table, TableCursor};
 use crate::{
     contracts::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64},
-    core::name::Name,
+    core::{name::Name, MultiIndex},
 };
 use alloc::vec;
 use alloc::vec::Vec;
@@ -9,6 +9,7 @@ use core::{
     borrow::{Borrow, BorrowMut},
     ffi::c_void,
     marker::PhantomData,
+    ops::Deref,
     ptr::null_mut,
 };
 use pulse_serialization::{NumBytes, ReadError, Write, WriteError};
@@ -20,8 +21,22 @@ where
 {
     value: i32,
     code: Name,
-    scope: Name,
+    scope: u64,
     data: PhantomData<T>,
+}
+
+impl<T> PrimaryTableCursor<T>
+where
+    T: Table,
+{
+    pub const fn new(value: i32, code: Name, scope: u64) -> Self {
+        Self {
+            value,
+            code,
+            scope,
+            data: PhantomData,
+        }
+    }
 }
 
 impl<T> TableCursor<T> for PrimaryTableCursor<T>
@@ -97,7 +112,7 @@ where
 {
     value: i32,
     code: Name,
-    scope: Name,
+    scope: u64,
     data: PhantomData<T>,
 }
 
@@ -125,67 +140,5 @@ where
         self.value = db_next_i64(self.value, ptr);
 
         Some(cursor)
-    }
-}
-
-/// TODO docs
-#[derive(Copy, Clone, Debug)]
-pub struct PrimaryTableIndex<T>
-where
-    T: Table,
-{
-    /// TODO docs
-    pub code: Name,
-    /// TODO docs
-    pub scope: Name,
-    /// TODO docs
-    _data: PhantomData<T>,
-}
-
-impl<T> PrimaryTableIndex<T>
-where
-    T: Table,
-{
-    /// TODO docs
-    #[inline]
-    pub fn new<C, S>(code: C, scope: S) -> Self
-    where
-        C: Into<Name>,
-        S: Into<Name>,
-    {
-        Self {
-            code: code.into(),
-            scope: scope.into(),
-            _data: PhantomData,
-        }
-    }
-
-    #[inline]
-    pub fn find(&self, key: T::Key) -> Option<PrimaryTableCursor<T>> {
-        let code = self.code;
-        let scope = self.scope;
-        let itr = db_find_i64(self.code, self.scope, T::NAME, key.into());
-        if itr >= 0 {
-            Some(PrimaryTableCursor {
-                value: itr,
-                code,
-                scope,
-                data: PhantomData,
-            })
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    pub fn emplace(&self, payer: Name, item: T::Row) {
-        let item = item.borrow();
-        let id = T::primary_key(item);
-        let size = item.num_bytes();
-        let mut bytes = vec![0_u8; size];
-        let mut pos = 0;
-        item.write(&mut bytes, &mut pos)
-            .expect("failed to write item");
-        db_store_i64(self.scope, T::NAME, payer, id.into(), &bytes[..], pos as u32);
     }
 }

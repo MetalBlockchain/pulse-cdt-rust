@@ -19,7 +19,7 @@ impl Name {
     /// TODO docs
     #[inline(always)]
     #[must_use]
-    pub const fn as_u64(&self) -> u64 {
+    pub const fn raw(&self) -> u64 {
         self.0
     }
 }

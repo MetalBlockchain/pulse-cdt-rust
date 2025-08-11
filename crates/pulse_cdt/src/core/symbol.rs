@@ -22,18 +22,18 @@ impl Symbol {
     #[inline]
     #[must_use]
     pub const fn precision(&self) -> u8 {
-        symbol_to_precision(self.as_u64())
+        symbol_to_precision(self.raw())
     }
 
     #[inline]
     #[must_use]
     pub const fn code(&self) -> SymbolCode {
-        SymbolCode::new(symbol_to_code(self.as_u64()))
+        SymbolCode::new(symbol_to_code(self.raw()))
     }
 
     #[inline]
     #[must_use]
-    pub const fn as_u64(&self) -> u64 {
+    pub const fn raw(&self) -> u64 {
         self.0
     }
 

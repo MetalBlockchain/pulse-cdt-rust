@@ -1,7 +1,6 @@
 #![no_std]
 extern crate alloc;
 
-use alloc::vec;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn};
@@ -13,6 +12,7 @@ mod derive_write;
 mod dispatch;
 mod internal;
 mod name;
+mod name_raw;
 
 #[inline]
 #[proc_macro_attribute]
@@ -28,6 +28,14 @@ pub fn action(args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn name(input: TokenStream) -> TokenStream {
     use crate::name::PulseName;
+    let item = parse_macro_input!(input as PulseName);
+    quote!(#item).into()
+}
+
+#[inline]
+#[proc_macro]
+pub fn name_raw(input: TokenStream) -> TokenStream {
+    use crate::name_raw::PulseName;
     let item = parse_macro_input!(input as PulseName);
     quote!(#item).into()
 }

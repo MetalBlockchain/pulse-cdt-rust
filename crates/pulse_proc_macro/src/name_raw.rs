@@ -1,6 +1,6 @@
 use proc_macro2::{Literal, TokenStream};
 use pulse_name::name_from_bytes;
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{ToTokens, TokenStreamExt};
 use syn::{
     parse::{Parse, ParseStream, Result as ParseResult},
     LitStr,
@@ -19,11 +19,6 @@ impl Parse for PulseName {
 
 impl ToTokens for PulseName {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let name_raw = self.0;
-        let expanded = quote! {
-            pulse_cdt::core::Name::new(#name_raw)
-        };
-
-        expanded.to_tokens(tokens);
+        tokens.append(Literal::u64_suffixed(self.0))
     }
 }

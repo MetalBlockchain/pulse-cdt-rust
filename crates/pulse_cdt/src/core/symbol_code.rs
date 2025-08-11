@@ -1,3 +1,5 @@
+use core::str::FromStr;
+
 use pulse_proc_macro::{NumBytes, Read, Write};
 
 /// The maximum allowed length of Pulse symbol codes.
@@ -27,6 +29,15 @@ impl From<SymbolCode> for [u8; 7] {
     #[inline]
     fn from(s: SymbolCode) -> Self {
         symbol_code_to_bytes(s.0)
+    }
+}
+
+impl FromStr for SymbolCode {
+    type Err = ParseSymbolCodeError;
+
+    #[inline]
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        symbol_code_from_bytes(value.bytes()).map(Into::into)
     }
 }
 

@@ -91,7 +91,7 @@ impl ToTokens for ActionFn {
 
             #[automatically_derived]
             impl pulse_cdt::contracts::ActionFn for #struct_ident {
-                const NAME: pulse_cdt::core::Name = pulse_cdt::core::Name::new(pulse_cdt::name!(#action_name));
+                const NAME: pulse_cdt::core::Name = pulse_cdt::name!(#action_name);
                 fn call(self) {
                     #assign_args
                     #block

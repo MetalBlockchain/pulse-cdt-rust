@@ -51,22 +51,22 @@ pub fn read_action_data<T: Read>() -> Result<T, ReadError> {
 
 #[inline]
 pub fn require_auth(name: Name) {
-    unsafe { action_impl::require_auth(name.as_u64()) }
+    unsafe { action_impl::require_auth(name.raw()) }
 }
 
 #[inline]
 pub fn has_auth(name: Name) -> bool {
-    unsafe { action_impl::has_auth(name.as_u64()) }
+    unsafe { action_impl::has_auth(name.raw()) }
 }
 
 #[inline]
 pub fn require_recipient(recipient: Name) {
-    unsafe { action_impl::require_recipient(recipient.as_u64()) }
+    unsafe { action_impl::require_recipient(recipient.raw()) }
 }
 
 #[inline]
 pub fn is_account(recipient: Name) -> bool {
-    unsafe { action_impl::is_account(recipient.as_u64()) }
+    unsafe { action_impl::is_account(recipient.raw()) }
 }
 
 #[inline]

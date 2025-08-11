@@ -1,0 +1,23 @@
+[package]
+name = "pulse_system"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pulse_cdt = { workspace = true }
+pulse_token = { workspace = true }
+wasm-snip = "0.4.0"
+
+[build-dependencies]
+syn = { version = "1", features = ["full"] }
+quote = "1.0"
+serde_json = "1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

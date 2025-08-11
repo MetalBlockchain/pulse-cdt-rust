@@ -63,23 +63,16 @@ pub fn db_previous_i64(iterator: i32, primary: *mut u64) -> i32 {
 
 #[inline]
 pub fn db_update_i64(iterator: i32, payer: Name, data: *const crate::c_void, len: u32) {
-    unsafe { database_impl::db_update_i64(iterator, payer.as_u64(), data, len) }
+    unsafe { database_impl::db_update_i64(iterator, payer.raw(), data, len) }
 }
 
 #[inline]
-pub fn db_store_i64(
-    scope: Name,
-    table: Name,
-    payer: Name,
-    id: u64,
-    data: &[u8],
-    len: u32,
-) -> i32 {
+pub fn db_store_i64(scope: u64, table: Name, payer: Name, id: u64, data: &[u8], len: u32) -> i32 {
     unsafe {
         database_impl::db_store_i64(
-            scope.as_u64(),
-            table.as_u64(),
-            payer.as_u64(),
+            scope,
+            table.raw(),
+            payer.raw(),
             id,
             data as *const _ as *const crate::c_void,
             len,
@@ -90,21 +83,21 @@ pub fn db_store_i64(
 // Tries to find an item by its primary key.
 // Returns the iterator if found, or -1 if not found.
 #[inline]
-pub fn db_find_i64(code: Name, scope: Name, table: Name, id: u64) -> i32 {
-    unsafe { database_impl::db_find_i64(code.as_u64(), scope.as_u64(), table.as_u64(), id) }
+pub fn db_find_i64(code: Name, scope: u64, table: Name, id: u64) -> i32 {
+    unsafe { database_impl::db_find_i64(code.raw(), scope, table.raw(), id) }
 }
 
 #[inline]
-pub fn db_end_i64(code: Name, scope: Name, table: Name) -> i32 {
-    unsafe { database_impl::db_end_i64(code.as_u64(), scope.as_u64(), table.as_u64()) }
+pub fn db_end_i64(code: Name, scope: u64, table: Name) -> i32 {
+    unsafe { database_impl::db_end_i64(code.raw(), scope, table.raw()) }
 }
 
 #[inline]
-pub fn db_lowerbound_i64(code: Name, scope: Name, table: Name, id: u64) -> i32 {
-    unsafe { database_impl::db_lowerbound_i64(code.as_u64(), scope.as_u64(), table.as_u64(), id) }
+pub fn db_lowerbound_i64(code: Name, scope: u64, table: Name, id: u64) -> i32 {
+    unsafe { database_impl::db_lowerbound_i64(code.raw(), scope, table.raw(), id) }
 }
 
 #[inline]
-pub fn db_upperbound_i64(code: Name, scope: Name, table: Name, id: u64) -> i32 {
-    unsafe { database_impl::db_upperbound_i64(code.as_u64(), scope.as_u64(), table.as_u64(), id) }
+pub fn db_upperbound_i64(code: Name, scope: u64, table: Name, id: u64) -> i32 {
+    unsafe { database_impl::db_upperbound_i64(code.raw(), scope, table.raw(), id) }
 }

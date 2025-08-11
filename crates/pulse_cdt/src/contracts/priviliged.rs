@@ -1,3 +1,5 @@
+use core::ops::Deref;
+
 use crate::core::Name;
 
 mod priviliged_impl {
@@ -33,7 +35,7 @@ mod priviliged_impl {
 /// - `false` if the account is not privileged.
 #[inline]
 pub fn is_privileged(account: Name) -> bool {
-    unsafe { priviliged_impl::is_privileged(account.as_u64()) }
+    unsafe { priviliged_impl::is_privileged(account.raw()) }
 }
 
 /// Sets the privileged status of an account.
@@ -44,7 +46,7 @@ pub fn is_privileged(account: Name) -> bool {
 /// - `privileged`: A boolean indicating whether the account should be privileged (`true`) or not (`false`).
 #[inline]
 pub fn set_privileged(account: Name, privileged: bool) {
-    unsafe { priviliged_impl::set_privileged(account.as_u64(), privileged) }
+    unsafe { priviliged_impl::set_privileged(account.raw(), privileged) }
 }
 
 /// Retrieves the resource limits for a given account.
@@ -63,7 +65,7 @@ pub fn get_resource_limits(account: Name) -> (i64, i64, i64) {
 
     unsafe {
         priviliged_impl::get_resource_limits(
-            account.as_u64(),
+            account.raw(),
             ram_bytes_ptr,
             net_weight_ptr,
             cpu_weight_ptr,
@@ -86,6 +88,6 @@ pub fn get_resource_limits(account: Name) -> (i64, i64, i64) {
 #[inline]
 pub fn set_resource_limits(account: Name, ram_bytes: i64, net_weight: i64, cpu_weight: i64) {
     unsafe {
-        priviliged_impl::set_resource_limits(account.as_u64(), ram_bytes, net_weight, cpu_weight)
+        priviliged_impl::set_resource_limits(account.raw(), ram_bytes, net_weight, cpu_weight)
     }
 }

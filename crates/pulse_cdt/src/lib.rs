@@ -10,7 +10,7 @@ pub mod core;
 pub use ::core::ffi::c_char;
 pub use ::core::ffi::c_void;
 
-pub use pulse_proc_macro::{action, dispatch, name};
+pub use pulse_proc_macro::{action, dispatch, name, name_raw};
 pub use pulse_serialization::{DataStream, NumBytes, Read, ReadError, Write, WriteError};
 
 #[cfg(target_arch = "wasm32")]

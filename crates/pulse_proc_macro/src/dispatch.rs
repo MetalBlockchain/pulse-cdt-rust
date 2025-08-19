@@ -56,6 +56,28 @@ pub fn expand(input: TokenStream) -> TokenStream {
     });
     let expanded = quote! {
         #[cfg(target_arch = "wasm32")]
+        #[global_allocator]
+        static ALLOCATOR: ::pulse_cdt::__reexports::lol_alloc::AssumeSingleThreaded<
+            ::pulse_cdt::__reexports::lol_alloc::LeakingAllocator
+        > = unsafe {
+            ::pulse_cdt::__reexports::lol_alloc::AssumeSingleThreaded::new(
+                ::pulse_cdt::__reexports::lol_alloc::LeakingAllocator::new()
+            )
+        };
+
+        #[cfg(target_arch = "wasm32")]
+        #[panic_handler]
+        fn panic(panic_info: &core::panic::PanicInfo) -> ! {
+            let s = panic_info.message().as_str();
+            if let Some(s) = s {
+                pulse_cdt::core::check(false, s);
+            } else {
+                pulse_cdt::core::check(false, "panic without message");
+            }
+            ::core::arch::wasm32::unreachable()
+        }
+
+        #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn apply(receiver: u64, code: u64, action: u64) {
             if action == pulse_cdt::name_raw!("onerror") {

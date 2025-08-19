@@ -66,7 +66,7 @@ where
     }
 
     #[inline]
-    pub fn find(&self, key: T::Key) -> ConstIterator<T> {
+    pub fn find(&self, key: u64) -> ConstIterator<T> {
         let itr = db_find_i64(self.code, self.scope, self.table.into(), key.into());
         if itr < 0 {
             return self.end();
@@ -77,7 +77,7 @@ where
     }
 
     #[inline]
-    pub fn get(&self, key: T::Key, error_msg: &str) -> ConstIterator<T> {
+    pub fn get(&self, key: u64, error_msg: &str) -> ConstIterator<T> {
         let result = self.find(key);
         check(result != self.end(), error_msg);
         result
@@ -147,7 +147,7 @@ where
 pub trait Table: Sized + Clone + PartialEq {
     type Key: Read + Write + NumBytes + Into<u64>;
     /// TODO docs
-    type Row: Read + Write + NumBytes + Sized + PartialEq;
+    type Row: Read + Write + NumBytes + Sized + PartialEq + Clone;
     /// TODO docs
     fn primary_key(row: &Self::Row) -> Self::Key;
 }
@@ -212,6 +212,14 @@ where
     #[inline]
     pub const fn new(idx: MultiIndex<T>, item: Option<Item<T>>) -> Self {
         Self { idx, item }
+    }
+
+    pub fn value(&self) -> T::Row {
+        self.item
+            .as_ref()
+            .expect("iterator is empty")
+            .inner
+            .clone()
     }
 }
 

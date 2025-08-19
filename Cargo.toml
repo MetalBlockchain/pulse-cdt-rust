@@ -10,7 +10,7 @@ members = [
     "crates/pulse_serialization",
     "test-contracts",
     "test-contracts/test_api_db"
-]
+, "crates/pulse_bytes"]
 
 [workspace.dependencies]
 pulse_cdt = { version = "=0.1.0", path = "crates/pulse_cdt", default-features = false }
@@ -18,6 +18,8 @@ pulse_proc_macro = { version = "=0.1.0", path = "crates/pulse_proc_macro", defau
 pulse_name = { version = "=0.1.0", path = "crates/pulse_name", default-features = false }
 pulse_serialization = { version = "=0.1.0", path = "crates/pulse_serialization", default-features = false }
 pulse_token = { version = "=0.1.0", path = "contracts/pulse_token", default-features = false }
+pulse_system = { version = "=0.1.0", path = "contracts/pulse_system", default-features = false }
+pulse_bytes = { version = "=0.1.0", path = "crates/pulse_bytes", default-features = false }
 
 [profile.release]
 opt-level = "z"
@@ -27,3 +29,7 @@ lto = true
 debug-assertions = false
 codegen-units = 1
 strip = "debuginfo"
+panic = "abort"
+
+[profile.dev]
+panic = "abort"

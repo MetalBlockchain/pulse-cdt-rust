@@ -13,6 +13,7 @@ mod dispatch;
 mod internal;
 mod name;
 mod name_raw;
+mod symbol_with_code;
 
 #[inline]
 #[proc_macro_attribute]
@@ -67,5 +68,13 @@ pub fn derive_numbytes(input: TokenStream) -> TokenStream {
 pub fn derive_write(input: TokenStream) -> TokenStream {
     use crate::derive_write::DeriveWrite;
     let item = parse_macro_input!(input as DeriveWrite);
+    quote!(#item).into()
+}
+
+#[inline]
+#[proc_macro]
+pub fn symbol_with_code(input: TokenStream) -> TokenStream {
+    use crate::symbol_with_code::SymbolWithCode;
+    let item = parse_macro_input!(input as SymbolWithCode);
     quote!(#item).into()
 }

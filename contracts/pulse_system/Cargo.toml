@@ -1,11 +1,10 @@
 [package]
 name = "pulse_system"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 pulse_cdt = { workspace = true }
-pulse_token = { workspace = true }
 wasm-snip = "0.4.0"
 
 [build-dependencies]

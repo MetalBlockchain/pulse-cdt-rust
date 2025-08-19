@@ -124,10 +124,7 @@ fn retire(quantity: Asset, memo: String) {
 
     let stats_table = STATS.index(get_self(), sym.code().raw());
     let mut st = stats_table.find(sym.code().raw());
-    check(
-        st != stats_table.end(),
-        "token with symbol does not exist",
-    );
+    check(st != stats_table.end(), "token with symbol does not exist");
 
     require_auth(st.issuer);
     check(quantity.is_valid(), "invalid quantity");

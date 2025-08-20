@@ -1,4 +1,4 @@
-use super::{Payer, Table, TableCursor};
+use super::{Table, TableCursor};
 use crate::{
     contracts::{db_get_i64, db_next_i64, db_remove_i64, db_update_i64},
     core::name::Name,
@@ -57,7 +57,7 @@ where
     }
 
     #[inline]
-    fn modify<I, F>(&self, mut item: I, payer: Payer, modifier: F) -> Result<usize, WriteError>
+    fn modify<I, F>(&self, mut item: I, payer: Name, modifier: F) -> Result<usize, WriteError>
     where
         I: BorrowMut<T::Row>,
         F: FnOnce(&mut T::Row),
@@ -69,11 +69,6 @@ where
         let mut pos = 0;
         item.write(&mut bytes, &mut pos)?;
         let bytes_ptr: *const c_void = &bytes[..] as *const _ as *const c_void;
-        let payer = if let Payer::New(payer) = payer {
-            payer
-        } else {
-            Name::new(0)
-        };
         #[allow(clippy::cast_possible_truncation)]
         db_update_i64(self.value, payer, bytes_ptr, pos as u32);
 

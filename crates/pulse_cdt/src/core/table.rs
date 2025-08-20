@@ -148,11 +148,6 @@ pub trait Table: Sized + Clone + PartialEq {
     fn primary_key(row: &Self::Row) -> Self::Key;
 }
 
-pub enum Payer {
-    Same,
-    New(Name),
-}
-
 pub trait TableCursor<T>: IntoIterator
 where
     T: Table,
@@ -187,7 +182,7 @@ where
     /// # Errors
     ///
     /// Will return `Err` if there was an issue serializing the value.
-    fn modify<I, F>(&self, item: I, payer: Payer, modifier: F) -> Result<usize, WriteError>
+    fn modify<I, F>(&self, item: I, payer: Name, modifier: F) -> Result<usize, WriteError>
     where
         I: BorrowMut<T::Row>,
         F: FnOnce(&mut T::Row);

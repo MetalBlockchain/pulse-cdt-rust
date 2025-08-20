@@ -7,7 +7,7 @@ use pulse_cdt::{
     action, contract,
     contracts::{has_auth, is_account, require_auth, require_recipient},
     core::{
-        check, Asset, MultiIndexDefinition, Name, Payer, Symbol, SymbolCode, Table,
+        check, Asset, MultiIndexDefinition, Name, Symbol, SymbolCode, Table,
         MAX_ASSET_AMOUNT,
     },
     name, table, NumBytes, Read, Write, SAME_PAYER,

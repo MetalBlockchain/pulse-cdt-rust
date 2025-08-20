@@ -241,7 +241,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
     let output = quote! {
         #impl_block
 
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "contract-entry"))]
         #[global_allocator]
         static ALLOCATOR: ::pulse_cdt::__reexports::lol_alloc::AssumeSingleThreaded<
             ::pulse_cdt::__reexports::lol_alloc::LeakingAllocator
@@ -251,7 +251,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             )
         };
 
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "contract-entry"))]
         #[panic_handler]
         fn panic(panic_info: &core::panic::PanicInfo) -> ! {
             let s = panic_info.message().as_str();
@@ -308,6 +308,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             pulse_cdt::core::Name::new(#ctx_mod_ident::get_self())
         }
 
+        #[cfg(feature = "contract-entry")]
         #[no_mangle]
         pub extern "C" fn apply(receiver: u64, code: u64, action: u64) {
             // set receiver for the entire call; cleared on all exits (incl. early returns)

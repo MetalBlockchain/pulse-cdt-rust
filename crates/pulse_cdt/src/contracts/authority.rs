@@ -11,7 +11,7 @@ pub struct Authority {
     accounts: Vec<PermissionLevelWeight>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Read, Write, NumBytes)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Read, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct KeyWeight {
     key: PublicKey,

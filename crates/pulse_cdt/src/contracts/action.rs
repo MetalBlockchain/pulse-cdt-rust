@@ -1,8 +1,9 @@
 use alloc::vec;
 use alloc::vec::Vec;
-use pulse_serialization::Read;
+use pulse_proc_macro::NumBytes;
+use pulse_serialization::{Read, Write};
 
-use crate::core::Name;
+use crate::{contracts::PermissionLevel, core::Name};
 
 mod action_impl {
     extern "C" {
@@ -29,6 +30,9 @@ mod action_impl {
 
         #[link_name = "current_receiver"]
         pub fn current_receiver() -> u64;
+
+        #[link_name = "send_inline"]
+        pub fn send_inline(msg: *mut crate::c_void, len: usize);
     }
 }
 
@@ -75,8 +79,17 @@ pub fn current_receiver() -> Name {
     Name::new(receiver)
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct Action<T> {
+#[inline]
+pub fn send_inline(data: &Vec<u8>) {
+    unsafe { action_impl::send_inline(data.as_ptr() as *mut _, data.len()) };
+}
+
+#[derive(Clone, Debug, Default, Write, NumBytes)]
+#[pulse(crate_path = "pulse_serialization")]
+pub struct Action<T>
+where 
+    T: Write
+{
     /// Name of the account the action is intended for
     pub account: Name,
     /// Name of the action
@@ -87,16 +100,19 @@ pub struct Action<T> {
     pub data: T,
 }
 
+impl<T> Action<T>
+where 
+    T: Write
+{
+    pub fn send(&self) {
+        let serialized = self.pack().expect("failed to serialize action");
+        send_inline(&serialized);
+    }
+}
+
 pub trait ActionFn: Clone {
     /// TODO docs
     const NAME: Name;
     /// TODO docs.
     fn call(self);
-}
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default, Hash, PartialOrd, Ord)]
-pub struct PermissionLevel {
-    /// TODO docs
-    pub actor: Name,
-    /// TODO docs
-    pub permission: Name,
 }

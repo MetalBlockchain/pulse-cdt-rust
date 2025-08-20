@@ -4,9 +4,13 @@ extern crate alloc;
 
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use pulse_cdt::{
-    action, constructor, contract, contracts::{require_auth, set_privileged, set_resource_limits}, core::{
-        check, Asset, Authority, MultiIndexDefinition, Name, Singleton, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
-    }, dispatch, name, symbol_with_code, table, NumBytes, Read, Write
+    action, constructor, contract,
+    contracts::{require_auth, set_privileged, set_resource_limits, Authority},
+    core::{
+        check, Asset, MultiIndexDefinition, Name, Singleton, SingletonDefinition, Symbol,
+        SymbolCode, Table, TimePoint, TimePointSec,
+    },
+    dispatch, name, symbol_with_code, table, NumBytes, Read, Write,
 };
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
@@ -351,12 +355,12 @@ pub struct CurrencyStats {
 
 const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
 
-#[inline]
+/* #[inline]
 fn get_supply(token_contract_account: Name, sym_code: SymbolCode) -> Asset {
     let stats_table = STATS.index(token_contract_account, sym_code.raw());
     let st = stats_table.get(sym_code.raw(), "symbol does not exist");
     st.supply
-}
+} */
 
 #[inline]
 fn get_core_symbol(system_account: Option<Name>) -> Symbol {
@@ -384,7 +388,11 @@ impl SystemContract {
         let global = GLOBAL_STATE_SINGLETON.get_instance(get_self(), get_self().raw());
 
         Self {
-            gstate: if (global.exists()) { global.get() } else { global.get() },
+            gstate: if (global.exists()) {
+                global.get()
+            } else {
+                global.get()
+            },
         }
     }
 

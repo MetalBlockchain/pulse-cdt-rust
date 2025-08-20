@@ -16,7 +16,7 @@ pulse_bytes = { workspace = true }
 lol_alloc = "0.4.1"
 
 [dev-dependencies]
-pulse_cdt = { version = ">= 0.1", path = "../pulse_cdt" }
+pulse_cdt = { path = "../pulse_cdt" }
 
 [lib]
 proc-macro = true

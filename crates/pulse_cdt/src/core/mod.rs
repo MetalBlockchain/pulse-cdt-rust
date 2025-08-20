@@ -1,9 +1,6 @@
 mod asset;
 pub use asset::*;
 
-mod authority;
-pub use authority::*;
-
 mod check;
 pub use check::check;
 

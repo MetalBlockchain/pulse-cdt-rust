@@ -1,17 +1,11 @@
 use super::{Payer, Table, TableCursor};
 use crate::{
-    contracts::{db_find_i64, db_get_i64, db_next_i64, db_remove_i64, db_store_i64, db_update_i64},
-    core::{name::Name, MultiIndex},
+    contracts::{db_get_i64, db_next_i64, db_remove_i64, db_update_i64},
+    core::name::Name,
 };
 use alloc::vec;
 use alloc::vec::Vec;
-use core::{
-    borrow::{Borrow, BorrowMut},
-    ffi::c_void,
-    marker::PhantomData,
-    ops::Deref,
-    ptr::null_mut,
-};
+use core::{borrow::BorrowMut, ffi::c_void, marker::PhantomData, ptr::null_mut};
 use pulse_serialization::{NumBytes, ReadError, Write, WriteError};
 
 #[derive(Copy, Clone, Debug)]

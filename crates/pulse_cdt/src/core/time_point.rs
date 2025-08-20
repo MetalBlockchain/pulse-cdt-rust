@@ -48,7 +48,6 @@ impl TimePoint {
 
 impl From<i64> for TimePoint {
     #[inline]
-    #[must_use]
     fn from(i: i64) -> Self {
         Self(i)
     }
@@ -56,7 +55,6 @@ impl From<i64> for TimePoint {
 
 impl From<TimePoint> for i64 {
     #[inline]
-    #[must_use]
     fn from(t: TimePoint) -> Self {
         t.0
     }

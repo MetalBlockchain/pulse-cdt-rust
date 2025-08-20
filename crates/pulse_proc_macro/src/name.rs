@@ -1,6 +1,6 @@
-use proc_macro2::{Literal, TokenStream};
+use proc_macro2::TokenStream;
 use pulse_name::name_from_bytes;
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream, Result as ParseResult},
     LitStr,

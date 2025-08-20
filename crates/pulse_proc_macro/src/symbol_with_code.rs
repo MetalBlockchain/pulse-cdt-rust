@@ -1,8 +1,9 @@
-use proc_macro2::{Literal, TokenStream};
+use proc_macro2::TokenStream;
 use pulse_bytes::{symbol_code_from_bytes, symbol_from_code};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens};
 use syn::{
-    parse::{Parse, ParseStream, Result as ParseResult}, parse_macro_input, Expr, LitInt, LitStr, Token
+    parse::{Parse, ParseStream, Result as ParseResult},
+    LitInt, LitStr, Token,
 };
 
 pub struct SymbolWithCode {

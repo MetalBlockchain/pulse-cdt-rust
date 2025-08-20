@@ -3,9 +3,6 @@ use core::str::FromStr;
 use pulse_bytes::{symbol_code_from_bytes, symbol_code_to_bytes, ParseSymbolCodeError};
 use pulse_proc_macro::{NumBytes, Read, Write};
 
-/// The maximum allowed length of Pulse symbol codes.
-pub const SYMBOL_CODE_MAX_LEN: usize = 7;
-
 #[derive(
     Debug, PartialEq, Eq, Clone, Copy, Default, Read, Write, NumBytes, Hash, PartialOrd, Ord,
 )]

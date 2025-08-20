@@ -77,6 +77,11 @@ pub fn expand(input: TokenStream) -> TokenStream {
             ::core::arch::wasm32::unreachable()
         }
 
+        let mut _self = 0u64;
+        fn get_self() -> pulse_cdt::Name {
+            pulse_cdt::Name(_self)
+        }
+
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn apply(receiver: u64, code: u64, action: u64) {

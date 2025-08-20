@@ -1,5 +1,3 @@
-use core::ops::Deref;
-
 use crate::core::Name;
 
 mod priviliged_impl {

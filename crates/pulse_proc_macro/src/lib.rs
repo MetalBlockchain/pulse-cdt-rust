@@ -3,9 +3,11 @@ extern crate alloc;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemFn};
+use syn::parse_macro_input;
 
-mod action;
+use crate::{contract::contract_macro, table::table_macro};
+
+mod contract;
 mod derive_numbytes;
 mod derive_read;
 mod derive_write;
@@ -14,15 +16,23 @@ mod internal;
 mod name;
 mod name_raw;
 mod symbol_with_code;
+mod table;
 
-#[inline]
 #[proc_macro_attribute]
-pub fn action(args: TokenStream, input: TokenStream) -> TokenStream {
-    use crate::action::{ActionArgs, ActionFn};
-    let args = parse_macro_input!(args as ActionArgs);
-    let item = parse_macro_input!(input as ItemFn);
-    let action = ActionFn::new(args, item);
-    quote!(#action).into()
+pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Keep any tokens for later parsing in #[contract]
+    let _ = attr;
+    item
+}
+
+#[proc_macro_attribute]
+pub fn constructor(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+
+#[proc_macro_attribute]
+pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    contract_macro(_attr, item)
 }
 
 #[inline]
@@ -77,4 +87,10 @@ pub fn symbol_with_code(input: TokenStream) -> TokenStream {
     use crate::symbol_with_code::SymbolWithCode;
     let item = parse_macro_input!(input as SymbolWithCode);
     quote!(#item).into()
+}
+
+#[inline]
+#[proc_macro_attribute]
+pub fn table(attr: TokenStream, item: TokenStream) -> TokenStream {
+    table_macro(attr, item)
 }

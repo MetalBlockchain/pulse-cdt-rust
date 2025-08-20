@@ -6,15 +6,14 @@ use core::{iter::Map, str::FromStr};
 
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use pulse_cdt::{
-    action,
-    contracts::{get_self, require_auth},
+    action, contract,
+    contracts::{require_auth, set_privileged, set_resource_limits},
     core::{
-        check, Asset, MultiIndexDefinition, Name, Symbol, SymbolCode, Table, TimePoint,
+        check, Asset, Authority, MultiIndexDefinition, Name, Symbol, SymbolCode, Table, TimePoint,
         TimePointSec,
     },
     dispatch, name, symbol_with_code, NumBytes, Read, Write,
 };
-//use pulse_token::get_supply;
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 pub struct Connector {
@@ -566,68 +565,143 @@ impl Table for CurrencyStats {
 
 const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
 
+#[inline]
 fn get_supply(token_contract_account: Name, sym_code: SymbolCode) -> Asset {
     let stats_table = STATS.index(token_contract_account, sym_code.raw());
     let st = stats_table.get(sym_code.raw(), "symbol does not exist");
     st.supply
 }
 
-#[action]
-fn init(version: u8, core: Symbol) {
-    require_auth(get_self());
-    check(version == 0, "unsupported version for init action");
-
-    let rammarket = RAMMARKET.index(get_self(), get_self().raw());
-    let itr = rammarket.find(RAMCORE_SYMBOL.raw());
-    check(
-        itr != rammarket.end(),
-        "system contract has already been initialized",
-    );
-
-    let system_token_supply = get_supply(TOKEN_ACCOUNT, core.code());
-    check(
-        system_token_supply.symbol == core,
-        "specified core symbol does not exist (precision mismatch)",
-    );
-    check(
-        system_token_supply.amount > 0,
-        "system token supply must be greater than 0",
-    );
-
-    let ram_symbol: Symbol = Symbol::new_with_code(0, SymbolCode::from_str("RAM").unwrap());
-    let gstate = GLOBAL_STATE_SINGLETON.index(get_self(), 0);
-    let gstate_itr = gstate.find(0);
-    if gstate_itr == gstate.end() {
-        // Global state does not exist, create it
-        gstate.emplace(
-            get_self(),
-            GlobalState::default(),
-        );
-    }
-
-    rammarket.emplace(
-        get_self(),
-        ExchangeState {
-            supply: Asset {
-                amount: 100000000000000,
-                symbol: RAMCORE_SYMBOL,
-            },
-            base: Connector {
-                balance: Asset {
-                    amount: gstate_itr.free_ram() as i64,
-                    symbol: ram_symbol,
-                },
-                weight: 0.5,
-            },
-            quote: Connector {
-                balance: Asset {
-                    amount: system_token_supply.amount / 1000,
-                    symbol: core,
-                },
-                weight: 0.5,
-            },
-        },
-    );
+#[inline]
+fn get_core_symbol(system_account: Option<Name>) -> Symbol {
+    let system_account = {
+        if system_account.is_some() {
+            system_account.unwrap()
+        } else {
+            name!("pulse")
+        }
+    };
+    let rm = RAMMARKET.index(system_account, system_account.raw());
+    let itr = rm.find(RAMCORE_SYMBOL.raw());
+    check(itr != rm.end(), "system contract must first be initialized");
+    itr.quote.balance.symbol
 }
 
-dispatch!(init);
+struct SystemContract;
+
+#[contract]
+impl SystemContract {
+    #[action]
+    fn setpriv(account: Name, ispriv: u8) {
+        require_auth(get_self());
+        set_privileged(account, ispriv == 1);
+    }
+
+    #[action]
+    fn newaccount(creator: Name, newact: Name, owner: Authority, active: Authority) {
+        if creator != get_self() && creator != name!("proton") {
+            let mut tmp = newact.raw() >> 4;
+            let mut has_dot_or_less_than_12_chars = false;
+
+            for _ in 0..12 {
+                has_dot_or_less_than_12_chars |= (tmp & 0x1f) == 0;
+                tmp >>= 5;
+            }
+
+            if has_dot_or_less_than_12_chars {
+                let suffix = newact.suffix();
+                let has_dot = suffix != newact;
+                if has_dot {
+                    // PROTON: only the suffix account may create names with dots/short
+                    check(creator == suffix, "only suffix may create this account");
+                    // or: check(creator == suffix, "only suffix may create this account");
+                }
+            }
+
+            check(
+                newact.to_string().chars().count() > 3,
+                "minimum 4 character length",
+            );
+        }
+
+        let userres = USER_RESOURCES_TABLE.index(get_self(), newact.raw());
+        let core_symbol = get_core_symbol(None);
+        userres.emplace(
+            newact,
+            UserResources {
+                owner: newact,
+                net_weight: Asset {
+                    amount: 0,
+                    symbol: core_symbol,
+                },
+                cpu_weight: Asset {
+                    amount: 0,
+                    symbol: core_symbol,
+                },
+                ram_bytes: 0,
+            },
+        );
+
+        set_resource_limits(newact, 0, 0, 0);
+    }
+
+    #[action]
+    fn setcode(account: Name, vmtype: u8, vmversion: u8, code: Vec<u8>) {
+        // Set code is open for all
+    }
+
+    #[action]
+    fn init(version: u8, core: Symbol) {
+        require_auth(get_self());
+        check(version == 0, "unsupported version for init action");
+
+        let rammarket = RAMMARKET.index(get_self(), get_self().raw());
+        let itr = rammarket.find(RAMCORE_SYMBOL.raw());
+        check(
+            itr != rammarket.end(),
+            "system contract has already been initialized",
+        );
+
+        let system_token_supply = get_supply(TOKEN_ACCOUNT, core.code());
+        check(
+            system_token_supply.symbol == core,
+            "specified core symbol does not exist (precision mismatch)",
+        );
+        check(
+            system_token_supply.amount > 0,
+            "system token supply must be greater than 0",
+        );
+
+        let ram_symbol: Symbol = symbol_with_code!(0, "RAM");
+        let gstate = GLOBAL_STATE_SINGLETON.index(get_self(), 0);
+        let gstate_itr = gstate.find(0);
+        if gstate_itr == gstate.end() {
+            // Global state does not exist, create it
+            gstate.emplace(get_self(), GlobalState::default());
+        }
+
+        rammarket.emplace(
+            get_self(),
+            ExchangeState {
+                supply: Asset {
+                    amount: 100000000000000,
+                    symbol: RAMCORE_SYMBOL,
+                },
+                base: Connector {
+                    balance: Asset {
+                        amount: gstate_itr.free_ram() as i64,
+                        symbol: ram_symbol,
+                    },
+                    weight: 0.5,
+                },
+                quote: Connector {
+                    balance: Asset {
+                        amount: system_token_supply.amount / 1000,
+                        symbol: core,
+                    },
+                    weight: 0.5,
+                },
+            },
+        );
+    }
+}

@@ -82,7 +82,6 @@ impl DataStream {
 
 impl From<Vec<u8>> for DataStream {
     #[inline(always)]
-    #[must_use]
     fn from(bytes: Vec<u8>) -> Self {
         Self { bytes, pos: 0 }
     }
@@ -90,7 +89,6 @@ impl From<Vec<u8>> for DataStream {
 
 impl From<&[u8]> for DataStream {
     #[inline(always)]
-    #[must_use]
     fn from(bytes: &[u8]) -> Self {
         Self {
             bytes: bytes.to_vec(),
@@ -103,7 +101,6 @@ impl Deref for DataStream {
     type Target = [u8];
 
     #[inline(always)]
-    #[must_use]
     fn deref(&self) -> &Self::Target {
         self.as_bytes()
     }

@@ -1,6 +1,6 @@
 use alloc::vec;
 use alloc::vec::Vec;
-use pulse_serialization::{Read, ReadError};
+use pulse_serialization::Read;
 
 use crate::core::Name;
 
@@ -38,7 +38,7 @@ pub fn action_data_size() -> u32 {
 }
 
 #[inline]
-pub fn read_action_data<T: Read>() -> Result<T, ReadError> {
+pub fn read_action_data<T: Read>() -> T {
     let num_bytes = action_data_size();
     let mut bytes = vec![0_u8; num_bytes as usize];
     let ptr: *mut crate::c_void = &mut bytes[..] as *mut _ as *mut crate::c_void;
@@ -46,7 +46,7 @@ pub fn read_action_data<T: Read>() -> Result<T, ReadError> {
         action_impl::read_action_data(ptr, num_bytes);
     }
     let mut pos = 0;
-    T::read(&bytes, &mut pos)
+    T::read(&bytes, &mut pos).unwrap()
 }
 
 #[inline]
@@ -67,12 +67,6 @@ pub fn require_recipient(recipient: Name) {
 #[inline]
 pub fn is_account(recipient: Name) -> bool {
     unsafe { action_impl::is_account(recipient.raw()) }
-}
-
-#[inline]
-pub fn get_self() -> Name {
-    let result = unsafe { action_impl::get_self() };
-    Name::new(result)
 }
 
 #[inline]

@@ -66,7 +66,6 @@ impl NumBytes for i64 {
 
 impl NumBytes for f32 {
     #[inline]
-    #[must_use]
     fn num_bytes(&self) -> usize {
         4
     }
@@ -74,7 +73,6 @@ impl NumBytes for f32 {
 
 impl NumBytes for f64 {
     #[inline]
-    #[must_use]
     fn num_bytes(&self) -> usize {
         8
     }

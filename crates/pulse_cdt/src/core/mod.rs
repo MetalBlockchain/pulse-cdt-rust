@@ -1,11 +1,20 @@
 mod asset;
 pub use asset::*;
 
+mod authority;
+pub use authority::*;
+
 mod check;
 pub use check::check;
 
 mod name;
 pub use name::*;
+
+mod public_key;
+pub use public_key::*;
+
+mod singleton;
+pub use singleton::*;
 
 mod symbol;
 pub use symbol::*;

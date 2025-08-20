@@ -94,7 +94,7 @@ where
     }
 
     #[inline]
-    pub fn emplace(&self, payer: Name, item: T::Row) {
+    pub fn emplace(&self, payer: Name, item: T::Row) -> ConstIterator<T> {
         let item = item.borrow();
         let id = T::primary_key(item);
         let size = item.num_bytes();
@@ -102,7 +102,7 @@ where
         let mut pos = 0;
         item.write(&mut bytes, &mut pos)
             .expect("failed to write item");
-        db_store_i64(
+        let itr = db_store_i64(
             self.scope,
             self.table.into(),
             payer,
@@ -110,10 +110,11 @@ where
             &bytes[..],
             pos as u32,
         );
+        ConstIterator::new(self.clone(), Some(Item::new(self.clone(), itr, item.clone())))
     }
 
     #[inline]
-    pub fn modify<F>(&self, item: &mut ConstIterator<T>, payer: Payer, modifier: F)
+    pub fn modify<F>(&self, item: &mut ConstIterator<T>, payer: Name, modifier: F)
     where
         F: FnOnce(&mut T::Row),
     {
@@ -125,11 +126,6 @@ where
         item.write(&mut bytes, &mut pos)
             .expect("failed to write item");
         let bytes_ptr: *const c_void = &bytes[..] as *const _ as *const c_void;
-        let payer = if let Payer::New(payer) = payer {
-            payer
-        } else {
-            Name::new(0)
-        };
         #[allow(clippy::cast_possible_truncation)]
         db_update_i64(item.primary_itr, payer, bytes_ptr, pos as u32);
     }
@@ -215,11 +211,7 @@ where
     }
 
     pub fn value(&self) -> T::Row {
-        self.item
-            .as_ref()
-            .expect("iterator is empty")
-            .inner
-            .clone()
+        self.item.as_ref().expect("iterator is empty").inner.clone()
     }
 }
 

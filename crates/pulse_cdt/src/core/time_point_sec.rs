@@ -26,7 +26,6 @@ impl TimePointSec {
 
 impl From<u32> for TimePointSec {
     #[inline]
-    #[must_use]
     fn from(i: u32) -> Self {
         Self(i)
     }
@@ -34,7 +33,6 @@ impl From<u32> for TimePointSec {
 
 impl From<TimePointSec> for u32 {
     #[inline]
-    #[must_use]
     fn from(t: TimePointSec) -> Self {
         t.0
     }
@@ -42,7 +40,6 @@ impl From<TimePointSec> for u32 {
 
 impl From<TimePoint> for TimePointSec {
     #[inline]
-    #[must_use]
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn from(t: TimePoint) -> Self {
         Self((t.as_micros() as u32) / 1_000_000_u32)
@@ -52,7 +49,6 @@ impl From<TimePoint> for TimePointSec {
 impl Add<u32> for TimePointSec {
     type Output = Self;
 
-    #[must_use]
     fn add(self, rhs: u32) -> Self::Output {
         Self(self.0 + rhs)
     }
@@ -61,7 +57,6 @@ impl Add<u32> for TimePointSec {
 impl Add<TimePointSec> for u32 {
     type Output = TimePointSec;
 
-    #[must_use]
     fn add(self, rhs: TimePointSec) -> Self::Output {
         TimePointSec(rhs.0 + self)
     }

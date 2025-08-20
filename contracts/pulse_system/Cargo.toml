@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 pulse_cdt = { workspace = true }
-pulse_token = { workspace = true }
 
 [build-dependencies]
 syn = { version = "1", features = ["full"] }

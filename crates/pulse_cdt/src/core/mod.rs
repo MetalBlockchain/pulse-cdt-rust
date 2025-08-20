@@ -4,6 +4,12 @@ pub use asset::*;
 mod check;
 pub use check::check;
 
+mod crypto;
+pub use crypto::*;
+
+mod fixed_bytes;
+pub use fixed_bytes::*;
+
 mod name;
 pub use name::*;
 

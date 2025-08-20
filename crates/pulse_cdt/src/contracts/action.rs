@@ -25,9 +25,6 @@ mod action_impl {
         #[link_name = "is_account"]
         pub fn is_account(name: u64) -> bool;
 
-        #[link_name = "get_self"]
-        pub fn get_self() -> u64;
-
         #[link_name = "current_receiver"]
         pub fn current_receiver() -> u64;
 

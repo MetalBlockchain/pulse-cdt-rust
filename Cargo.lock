@@ -176,7 +176,6 @@ name = "pulse_system"
 version = "0.1.0"
 dependencies = [
  "pulse_cdt",
- "pulse_token",
  "quote",
  "serde_json",
  "syn 1.0.109",

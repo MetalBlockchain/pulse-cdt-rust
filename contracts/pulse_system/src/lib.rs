@@ -2,6 +2,8 @@
 #![no_main]
 extern crate alloc;
 
+mod native;
+
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use pulse_cdt::{
     action, constructor, contract,
@@ -10,8 +12,10 @@ use pulse_cdt::{
         check, Asset, MultiIndexDefinition, Name, Singleton, SingletonDefinition, Symbol,
         SymbolCode, Table, TimePoint, TimePointSec,
     },
-    dispatch, name, symbol_with_code, table, NumBytes, Read, Write,
+    dispatch, name, symbol_with_code, table, NumBytes, Read, Write, SAME_PAYER,
 };
+
+use crate::{__SystemContract_contract_ctx::get_self, native::{AbiHash, ABI_HASH_TABLE}};
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 pub struct Connector {
@@ -448,6 +452,21 @@ impl SystemContract {
         );
 
         set_resource_limits(newact, 0, 0, 0);
+    }
+
+    #[action]
+    fn setabi(acnt: Name, abi: Vec<u8>) {
+        let table = ABI_HASH_TABLE.index(get_self(), get_self().raw());
+        let mut itr = table.find(acnt.raw());
+        if itr == table.end() {
+            table.emplace(acnt, AbiHash {
+                owner: acnt,
+            });
+        } else {
+            table.modify(&mut itr, SAME_PAYER, |t| {
+                
+            });
+        }
     }
 
     #[action]

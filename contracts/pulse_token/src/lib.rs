@@ -10,7 +10,7 @@ use pulse_cdt::{
         check, Asset, MultiIndexDefinition, Name, Payer, Symbol, SymbolCode, Table,
         MAX_ASSET_AMOUNT,
     },
-    name, table, NumBytes, Read, Write,
+    name, table, NumBytes, Read, Write, SAME_PAYER,
 };
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
@@ -31,6 +31,7 @@ pub struct CurrencyStats {
 
 pub const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
 
+#[derive(Default)]
 struct TokenContract;
 
 #[contract]
@@ -97,7 +98,7 @@ impl TokenContract {
             "quantity exceeds available supply",
         );
 
-        stats_table.modify(&mut st, Payer::Same, |s| {
+        stats_table.modify(&mut st, SAME_PAYER, |s| {
             s.supply.amount += quantity.amount;
         });
 
@@ -122,7 +123,7 @@ impl TokenContract {
             "symbol precision mismatch",
         );
 
-        stats_table.modify(&mut st, Payer::Same, |s| {
+        stats_table.modify(&mut st, SAME_PAYER, |s| {
             s.supply -= quantity;
         });
 
@@ -167,12 +168,14 @@ impl TokenContract {
 
         let accounts = ACCOUNTS.index(get_self(), owner.raw());
         let it = accounts.find(sym_code_raw);
-        accounts.emplace(
-            ram_payer,
-            Account {
-                balance: Asset { amount: 0, symbol },
-            },
-        );
+        if it == accounts.end() {
+            accounts.emplace(
+                ram_payer,
+                Account {
+                    balance: Asset { amount: 0, symbol },
+                },
+            );
+        }
     }
 
     #[action]
@@ -194,7 +197,7 @@ fn sub_balance(owner: Name, value: Asset) {
     let mut from = from_acnts.get(value.symbol.code().raw(), "no balance object found");
     check(from.balance.amount >= value.amount, "overdrawn balance");
 
-    from_acnts.modify(&mut from, Payer::Same, |a| {
+    from_acnts.modify(&mut from, SAME_PAYER, |a| {
         a.balance -= value;
     });
 }
@@ -206,7 +209,7 @@ fn add_balance(owner: Name, value: Asset, payer: Name) {
     if to == to_acnts.end() {
         to_acnts.emplace(payer, Account { balance: value });
     } else {
-        to_acnts.modify(&mut to, Payer::Same, |a| {
+        to_acnts.modify(&mut to, SAME_PAYER, |a| {
             a.balance += value;
         });
     }

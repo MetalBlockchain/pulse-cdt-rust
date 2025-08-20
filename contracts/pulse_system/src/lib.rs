@@ -2,17 +2,11 @@
 #![no_main]
 extern crate alloc;
 
-use core::{iter::Map, str::FromStr};
-
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use pulse_cdt::{
-    action, contract,
-    contracts::{require_auth, set_privileged, set_resource_limits},
-    core::{
-        check, Asset, Authority, MultiIndexDefinition, Name, Symbol, SymbolCode, Table, TimePoint,
-        TimePointSec,
-    },
-    dispatch, name, symbol_with_code, NumBytes, Read, Write,
+    action, constructor, contract, contracts::{require_auth, set_privileged, set_resource_limits}, core::{
+        check, Asset, Authority, MultiIndexDefinition, Name, Singleton, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
+    }, dispatch, name, symbol_with_code, table, NumBytes, Read, Write
 };
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
@@ -22,25 +16,18 @@ pub struct Connector {
 }
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.supply.symbol.raw())]
 pub struct ExchangeState {
     pub supply: Asset,
     pub base: Connector,
     pub quote: Connector,
 }
 
-impl Table for ExchangeState {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.supply.symbol.raw()
-    }
-}
-
 const RAMMARKET: MultiIndexDefinition<ExchangeState> =
     MultiIndexDefinition::new(name!("rammarket"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.new_name.raw())]
 pub struct NameBid {
     pub new_name: Name,
     pub high_bidder: Name,
@@ -48,36 +35,20 @@ pub struct NameBid {
     pub last_bid_time: TimePoint,
 }
 
-impl Table for NameBid {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.new_name.raw()
-    }
-}
-
 const NAME_BID_TABLE: MultiIndexDefinition<NameBid> = MultiIndexDefinition::new(name!("namebids"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.bidder.raw())]
 pub struct BidRefund {
     pub bidder: Name,
     pub amount: Asset,
-}
-
-impl Table for BidRefund {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.bidder.raw()
-    }
 }
 
 const BID_REFUND_TABLE: MultiIndexDefinition<BidRefund> =
     MultiIndexDefinition::new(name!("bidrefunds"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct ProducerInfo {
     owner: Name,
     total_votes: f64,
@@ -88,38 +59,22 @@ pub struct ProducerInfo {
     location: u16,
 }
 
-impl Table for ProducerInfo {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const PRODUCERS_TABLE: MultiIndexDefinition<ProducerInfo> =
     MultiIndexDefinition::new(name!("producers"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct ProducerInfo2 {
     owner: Name,
     votepay_share: f64,
     last_votepay_share_update: TimePoint,
 }
 
-impl Table for ProducerInfo2 {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const PRODUCERS_TABLE2: MultiIndexDefinition<ProducerInfo2> =
     MultiIndexDefinition::new(name!("producers2"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct VoterInfo {
     owner: Name,
     proxy: Name,
@@ -133,18 +88,10 @@ pub struct VoterInfo {
     reserved3: Asset,
 }
 
-impl Table for VoterInfo {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const VOTERS_TABLE: MultiIndexDefinition<VoterInfo> = MultiIndexDefinition::new(name!("voters"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct UserResources {
     owner: Name,
     net_weight: Asset,
@@ -152,19 +99,11 @@ pub struct UserResources {
     ram_bytes: i64,
 }
 
-impl Table for UserResources {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const USER_RESOURCES_TABLE: MultiIndexDefinition<UserResources> =
     MultiIndexDefinition::new(name!("userres"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.to.raw())]
 pub struct DelegatedBandwidth {
     from: Name,
     to: Name,
@@ -172,19 +111,11 @@ pub struct DelegatedBandwidth {
     cpu_weight: Asset,
 }
 
-impl Table for DelegatedBandwidth {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.to.raw()
-    }
-}
-
 const DEL_BANDWIDTH_TABLE: MultiIndexDefinition<DelegatedBandwidth> =
     MultiIndexDefinition::new(name!("delband"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct RefundRequest {
     owner: Name,
     request_time: TimePointSec,
@@ -192,38 +123,22 @@ pub struct RefundRequest {
     cpu_amount: Asset,
 }
 
-impl Table for RefundRequest {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const REFUNDS_TABLE: MultiIndexDefinition<RefundRequest> =
     MultiIndexDefinition::new(name!("refunds"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.to.raw())]
 pub struct DelegatedXPR {
     from: Name,
     to: Name,
     quantity: Asset,
 }
 
-impl Table for DelegatedXPR {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.to.raw()
-    }
-}
-
 const DEL_XPR_TABLE: MultiIndexDefinition<DelegatedXPR> =
     MultiIndexDefinition::new(name!("delxpr"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct VotersXPR {
     owner: Name,
     staked: u64,
@@ -234,38 +149,22 @@ pub struct VotersXPR {
     startqualif: Option<bool>,
 }
 
-impl Table for VotersXPR {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const VOTERS_XPR_TABLE: MultiIndexDefinition<VotersXPR> =
     MultiIndexDefinition::new(name!("votersxpr"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct XPRRefundRequest {
     owner: Name,
     request_time: TimePointSec,
     quantity: Asset,
 }
 
-impl Table for XPRRefundRequest {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const XPR_REFUNDS_TABLE: MultiIndexDefinition<XPRRefundRequest> =
     MultiIndexDefinition::new(name!("refundsxpr"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct GlobalStateXPR {
     max_bp_per_vote: u64,       // Max BPs allowed to vote from one account
     min_bp_reward: u64,         // Min voted BPs to get voter reward
@@ -277,19 +176,11 @@ pub struct GlobalStateXPR {
     spare2: u64,
 }
 
-impl Table for GlobalStateXPR {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
-}
-
 const GLOBAL_STATEXPR_SINGLETON: MultiIndexDefinition<GlobalStateXPR> =
     MultiIndexDefinition::new(name!("globalsxpr"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct GlobalStateD {
     totalstaked: i64,
     totalrstaked: i64,
@@ -307,19 +198,11 @@ pub struct GlobalStateD {
     spare2: i64,
 }
 
-impl Table for GlobalStateD {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
-}
-
 const GLOBAL_STATESD_SINGLETON: MultiIndexDefinition<GlobalStateD> =
     MultiIndexDefinition::new(name!("globalsd"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct GlobalStateRAM {
     ram_price_per_byte: Asset,
     max_per_user_bytes: u64,
@@ -328,19 +211,11 @@ pub struct GlobalStateRAM {
     total_xpr: u64,
 }
 
-impl Table for GlobalStateRAM {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
-}
-
 const GLOBAL_STATE_RAM_SINGLETON: MultiIndexDefinition<GlobalStateRAM> =
     MultiIndexDefinition::new(name!("globalram"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.account.raw())]
 pub struct UserRAM {
     account: Name,
     ram: u64,
@@ -348,18 +223,10 @@ pub struct UserRAM {
     ramlimit: u64,
 }
 
-impl Table for UserRAM {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.account.raw()
-    }
-}
-
 const USERRAM_TABLE: MultiIndexDefinition<UserRAM> = MultiIndexDefinition::new(name!("usersram"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct RexPool {
     version: u64,
     total_lent: Asset,
@@ -371,18 +238,10 @@ pub struct RexPool {
     loan_num: u64,
 }
 
-impl Table for RexPool {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
-}
-
 const REX_POOL_TABLE: MultiIndexDefinition<RexPool> = MultiIndexDefinition::new(name!("rexpool"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct RexReturnPool {
     version: u64,
     last_dist_time: TimePointSec,
@@ -393,55 +252,31 @@ pub struct RexReturnPool {
     proceeds: i64,
 }
 
-impl Table for RexReturnPool {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
-}
-
 const REX_RETURN_POOL_TABLE: MultiIndexDefinition<RexReturnPool> =
     MultiIndexDefinition::new(name!("retpool"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct RexReturnBuckets {
     version: u8,
     return_buckets: BTreeMap<TimePointSec, i64>,
-}
-
-impl Table for RexReturnBuckets {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
 }
 
 const REX_RETURN_BUCKETS_TABLE: MultiIndexDefinition<RexReturnBuckets> =
     MultiIndexDefinition::new(name!("retbuckets"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct RexFund {
     version: u8,
     owner: Name,
     balance: Asset,
 }
 
-impl Table for RexFund {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const REX_FUND_TABLE: MultiIndexDefinition<RexFund> = MultiIndexDefinition::new(name!("rexfund"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct RexBalance {
     version: u8,
     owner: Name,
@@ -450,19 +285,11 @@ pub struct RexBalance {
     matured_rex: i64,
 }
 
-impl Table for RexBalance {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const REX_BALANCE_TABLE: MultiIndexDefinition<RexBalance> =
     MultiIndexDefinition::new(name!("rexbal"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.version as u64)]
 pub struct RexLoan {
     version: u8,
     from: Name,
@@ -474,21 +301,13 @@ pub struct RexLoan {
     expiration: TimePoint,
 }
 
-impl Table for RexLoan {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.version as u64
-    }
-}
-
 const REX_CPU_LOAN_TABLE: MultiIndexDefinition<RexLoan> =
     MultiIndexDefinition::new(name!("cpuloan"));
 const REX_NET_LOAN_TABLE: MultiIndexDefinition<RexLoan> =
     MultiIndexDefinition::new(name!("netloan"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.owner.raw())]
 pub struct RexOrder {
     version: u8,
     owner: Name,
@@ -499,32 +318,17 @@ pub struct RexOrder {
     is_open: bool,
 }
 
-impl Table for RexOrder {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.owner.raw()
-    }
-}
-
 const TOKEN_ACCOUNT: Name = name!("pulse.token");
+const RAM_SYMBOL: Symbol = symbol_with_code!(0, "RAM");
 const RAMCORE_SYMBOL: Symbol = symbol_with_code!(4, "RAMCORE");
+const REX_SYMBOL: Symbol = symbol_with_code!(4, "REX");
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = 0)]
 pub struct GlobalState {
     max_ram_size: u64,
     total_ram_bytes_reserved: u64,
     total_ram_stake: i64,
-}
-
-impl Table for GlobalState {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        0
-    }
 }
 
 impl GlobalState {
@@ -534,33 +338,15 @@ impl GlobalState {
     }
 }
 
-impl Default for GlobalState {
-    fn default() -> Self {
-        Self {
-            max_ram_size: 16 * 1024 * 1024 * 1024,
-            total_ram_bytes_reserved: 0,
-            total_ram_stake: 0,
-        }
-    }
-}
-
-const GLOBAL_STATE_SINGLETON: MultiIndexDefinition<GlobalState> =
-    MultiIndexDefinition::new(name!("global"));
+const GLOBAL_STATE_SINGLETON: SingletonDefinition<GlobalState> =
+    SingletonDefinition::new(name!("global"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[table(primary_key = row.supply.symbol.code().raw())]
 pub struct CurrencyStats {
     pub supply: Asset,
     pub max_supply: Asset,
     pub issuer: Name,
-}
-
-impl Table for CurrencyStats {
-    type Key = u64;
-    type Row = Self;
-
-    fn primary_key(row: &Self::Row) -> u64 {
-        row.supply.symbol.code().raw()
-    }
 }
 
 const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
@@ -587,10 +373,21 @@ fn get_core_symbol(system_account: Option<Name>) -> Symbol {
     itr.quote.balance.symbol
 }
 
-struct SystemContract;
+struct SystemContract {
+    gstate: GlobalState,
+}
 
 #[contract]
 impl SystemContract {
+    #[constructor]
+    fn constructor() -> Self {
+        let global = GLOBAL_STATE_SINGLETON.get_instance(get_self(), get_self().raw());
+
+        Self {
+            gstate: if (global.exists()) { global.get() } else { global.get() },
+        }
+    }
+
     #[action]
     fn setpriv(account: Name, ispriv: u8) {
         require_auth(get_self());
@@ -651,7 +448,7 @@ impl SystemContract {
     }
 
     #[action]
-    fn init(version: u8, core: Symbol) {
+    fn init(&self, version: u8, core: Symbol) {
         require_auth(get_self());
         check(version == 0, "unsupported version for init action");
 
@@ -672,14 +469,6 @@ impl SystemContract {
             "system token supply must be greater than 0",
         );
 
-        let ram_symbol: Symbol = symbol_with_code!(0, "RAM");
-        let gstate = GLOBAL_STATE_SINGLETON.index(get_self(), 0);
-        let gstate_itr = gstate.find(0);
-        if gstate_itr == gstate.end() {
-            // Global state does not exist, create it
-            gstate.emplace(get_self(), GlobalState::default());
-        }
-
         rammarket.emplace(
             get_self(),
             ExchangeState {
@@ -689,8 +478,8 @@ impl SystemContract {
                 },
                 base: Connector {
                     balance: Asset {
-                        amount: gstate_itr.free_ram() as i64,
-                        symbol: ram_symbol,
+                        amount: self.gstate.free_ram() as i64,
+                        symbol: RAM_SYMBOL,
                     },
                     weight: 0.5,
                 },

@@ -112,28 +112,39 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             }
 
             if let Some(cfg) = parse_action_attr(&m.attrs)? {
-                ensure_no_receiver(m, "action")?;
-                // allow any arg count for actions
+                // CHANGED: allow &self OR no receiver; forbid &mut self / self
+                let rk = receiver_kind(m);
+                match rk {
+                    ReceiverKind::None | ReceiverKind::Ref => {}
+                    ReceiverKind::MutRef | ReceiverKind::Value => {
+                        return Err(syn::Error::new(
+                            m.sig.span(),
+                            "#[action] methods must be static or take `&self` (not `&mut self` or `self`)",
+                        ));
+                    }
+                }
+
                 actions.push(ActionMeta {
                     method: m.clone(),
                     name: cfg.name.unwrap_or_else(|| m.sig.ident.to_string()),
                     decoder: cfg.decoder.or_else(|| args.decoder.clone()), // per-action wins, else global, else default
+                    rk,
                 });
             }
         }
     }
 
     // Generate constructor arm
-    let ctor_arm = constructor.as_ref().map(|m| {
+    let ctor_arm = if let Some(m) = constructor.as_ref() {
         let ident = &m.sig.ident;
-        let name_str = ident.to_string();
         quote! {
-            if code == receiver && action == pulse_cdt::name_raw!(#name_str) {
-                <#self_ty>::#ident();
-                return;
-            }
+            let __instance: #self_ty = <#self_ty>::#ident();
         }
-    });
+    } else {
+        quote! {
+            let __instance: #self_ty = ::core::default::Default::default();
+        }
+    };
 
     // Generate action arms
     let action_arms = actions.iter().map(|a| {
@@ -169,11 +180,18 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             .map(|p| quote!(#p))
             .unwrap_or_else(|| quote!(::pulse_cdt::contracts::read_action_data));
 
+        // Generate the call depending on receiver kind
+        let call_no_args = match a.rk {
+            ReceiverKind::None => quote! { <#self_ty>::#method_ident() },
+            ReceiverKind::Ref  => quote! { __instance.#method_ident() },
+            _ => unreachable!(),
+        };
+
         if args_len == 0 {
             // no-arg action: no decode needed
             quote! {
                 else if code == receiver && action == pulse_cdt::name_raw!(#action_name_str) {
-                    <#self_ty>::#method_ident();
+                    #call_no_args;
                 }
             }
         } else {
@@ -182,14 +200,25 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             let bind_idents: Vec<proc_macro2::Ident> =
                 (0..args_len).map(|i| format_ident!("__a{}", i)).collect();
 
-            let call_args = quote! { #(#bind_idents),* };
+            let call_with_args = match a.rk {
+                ReceiverKind::None => {
+                    let args = quote! { #(#bind_idents),* };
+                    quote! { <#self_ty>::#method_ident( #args ) }
+                }
+
+                ReceiverKind::Ref => {
+                    let args = quote! { #(#bind_idents),* };
+                    quote! { __instance.#method_ident( #args ) }
+                }
+                _ => unreachable!(),
+            };
 
             quote! {
                 else if code == receiver && action == pulse_cdt::name_raw!(#action_name_str) {
                     type __Args = #tuple_ty;
                     let #tmp_ident: __Args = #decoder_path::<__Args>();
                     let ( #(#bind_idents),* ) = #tmp_ident;
-                    <#self_ty>::#method_ident( #call_args );
+                    #call_with_args;
                 }
             }
         }
@@ -284,11 +313,11 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             // set receiver for the entire call; cleared on all exits (incl. early returns)
             let __guard = #ctx_mod_ident::ReceiverGuard::new(receiver);
 
+            #ctor_arm
+
             if action == pulse_cdt::name_raw!("onerror") {
                 pulse_cdt::core::check(false, "onerror action's are only valid from the \"pulse\" system account");
             }
-
-            #ctor_arm
             #(#action_arms)*
             else if code == receiver {
                 pulse_cdt::core::check(false, "unknown action");
@@ -311,6 +340,7 @@ struct ActionMeta {
     method: ImplItemMethod,
     name: String,
     decoder: Option<Path>,
+    rk: ReceiverKind,
 }
 
 fn parse_action_attr(attrs: &[Attribute]) -> Result<Option<ActionCfg>> {
@@ -438,5 +468,27 @@ fn tuple_type_tokens(tys: &[&Type]) -> TokenStream2 {
         _ => {
             quote! { ( #(#tys),* ) }
         }
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum ReceiverKind {
+    None,
+    Ref,
+    MutRef,
+    Value,
+}
+
+fn receiver_kind(m: &ImplItemMethod) -> ReceiverKind {
+    // Detect receiver form
+    if let Some(recv) = m.sig.receiver() {
+        match recv {
+            FnArg::Receiver(r) if r.reference.is_some() && r.mutability.is_none() => ReceiverKind::Ref,
+            FnArg::Receiver(r) if r.reference.is_some() && r.mutability.is_some() => ReceiverKind::MutRef,
+            FnArg::Receiver(_) => ReceiverKind::Value,
+            _ => ReceiverKind::None,
+        }
+    } else {
+        ReceiverKind::None
     }
 }

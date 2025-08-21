@@ -84,8 +84,8 @@ pub fn send_inline(data: &Vec<u8>) {
 #[derive(Clone, Debug, Default, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct Action<T>
-where 
-    T: Write
+where
+    T: Write,
 {
     /// Name of the account the action is intended for
     pub account: Name,
@@ -98,8 +98,8 @@ where
 }
 
 impl<T> Action<T>
-where 
-    T: Write
+where
+    T: Write,
 {
     pub fn send(&self) {
         let serialized = self.pack().expect("failed to serialize action");

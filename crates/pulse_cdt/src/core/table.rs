@@ -110,7 +110,10 @@ where
             &bytes[..],
             pos as u32,
         );
-        ConstIterator::new(self.clone(), Some(Item::new(self.clone(), itr, item.clone())))
+        ConstIterator::new(
+            self.clone(),
+            Some(Item::new(self.clone(), itr, item.clone())),
+        )
     }
 
     #[inline]

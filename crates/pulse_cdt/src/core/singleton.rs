@@ -14,7 +14,10 @@ where
 {
     #[inline]
     pub const fn new(singleton_name: Name) -> Self {
-        Self { singleton_name, _marker: core::marker::PhantomData }
+        Self {
+            singleton_name,
+            _marker: core::marker::PhantomData,
+        }
     }
 
     #[inline]
@@ -28,7 +31,7 @@ where
     T: Table,
 {
     pk_value: u64,
-    table: MultiIndex<T>
+    table: MultiIndex<T>,
 }
 
 impl<T> Singleton<T>
@@ -79,7 +82,7 @@ where
     pub fn set(&self, value: T::Row, bill_to_account: Name) {
         let mut itr = self.table.find(self.pk_value);
         if itr != self.table.end() {
-            self.table.modify(&mut itr, bill_to_account, |s| { *s = value });
+            self.table.modify(&mut itr, bill_to_account, |s| *s = value);
         } else {
             self.table.emplace(bill_to_account, value);
         }

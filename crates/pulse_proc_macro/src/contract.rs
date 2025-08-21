@@ -183,7 +183,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
         // Generate the call depending on receiver kind
         let call_no_args = match a.rk {
             ReceiverKind::None => quote! { <#self_ty>::#method_ident() },
-            ReceiverKind::Ref  => quote! { __instance.#method_ident() },
+            ReceiverKind::Ref => quote! { __instance.#method_ident() },
             _ => unreachable!(),
         };
 
@@ -484,8 +484,12 @@ fn receiver_kind(m: &ImplItemMethod) -> ReceiverKind {
     // Detect receiver form
     if let Some(recv) = m.sig.receiver() {
         match recv {
-            FnArg::Receiver(r) if r.reference.is_some() && r.mutability.is_none() => ReceiverKind::Ref,
-            FnArg::Receiver(r) if r.reference.is_some() && r.mutability.is_some() => ReceiverKind::MutRef,
+            FnArg::Receiver(r) if r.reference.is_some() && r.mutability.is_none() => {
+                ReceiverKind::Ref
+            }
+            FnArg::Receiver(r) if r.reference.is_some() && r.mutability.is_some() => {
+                ReceiverKind::MutRef
+            }
             FnArg::Receiver(_) => ReceiverKind::Value,
             _ => ReceiverKind::None,
         }

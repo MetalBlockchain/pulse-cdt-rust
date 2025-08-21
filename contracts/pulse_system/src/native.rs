@@ -1,4 +1,8 @@
-use pulse_cdt::{core::{Checksum256, MultiIndexDefinition, Name, Table}, name, table, NumBytes, Read, Write};
+use pulse_cdt::{
+    NumBytes, Read, Write,
+    core::{Checksum256, MultiIndexDefinition, Name, Table},
+    name, table,
+};
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 #[table(primary_key = row.owner.raw())]

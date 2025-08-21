@@ -16,6 +16,9 @@ pub use name::*;
 mod public_key;
 pub use public_key::*;
 
+mod signature;
+pub use signature::*;
+
 mod singleton;
 pub use singleton::*;
 

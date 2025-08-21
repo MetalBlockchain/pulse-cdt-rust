@@ -31,3 +31,9 @@ pub struct PermissionLevel {
     actor: Name,
     permission: Name,
 }
+
+impl PermissionLevel {
+    pub fn new(actor: Name, permission: Name) -> Self {
+        Self { actor, permission }
+    }
+}

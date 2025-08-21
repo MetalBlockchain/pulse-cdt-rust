@@ -4,19 +4,16 @@ extern crate alloc;
 
 mod native;
 
-use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
+use alloc::{collections::btree_map::BTreeMap, string::String, vec, vec::Vec};
 use pulse_cdt::{
-    NumBytes, Read, SAME_PAYER, Write, action, constructor, contract,
-    contracts::{Authority, require_auth, set_privileged, set_resource_limits},
-    core::{
-        Asset, MultiIndexDefinition, Name, Singleton, SingletonDefinition, Symbol, SymbolCode,
-        Table, TimePoint, TimePointSec, check,
-    },
-    dispatch, name, symbol_with_code, table,
+    action, constructor, contract, contracts::{
+        require_auth, set_privileged, set_resource_limits, sha256, ActionWrapper, Authority, PermissionLevel
+    }, core::{
+        check, Asset, MultiIndexDefinition, Name, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
+    }, name, symbol_with_code, table, NumBytes, Read, Write, SAME_PAYER
 };
 
 use crate::{
-    __SystemContract_contract_ctx::get_self,
     native::{ABI_HASH_TABLE, AbiHash},
 };
 
@@ -329,10 +326,12 @@ pub struct RexOrder {
     is_open: bool,
 }
 
+const ACTIVE_PERMISSION: Name = name!("active");
 const TOKEN_ACCOUNT: Name = name!("pulse.token");
 const RAM_SYMBOL: Symbol = symbol_with_code!(0, "RAM");
 const RAMCORE_SYMBOL: Symbol = symbol_with_code!(4, "RAMCORE");
 const REX_SYMBOL: Symbol = symbol_with_code!(4, "REX");
+const REX_ACCOUNT: Name = name!("pulse.rex");
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 #[table(primary_key = 0)]
@@ -362,12 +361,12 @@ pub struct CurrencyStats {
 
 const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
 
-/* #[inline]
+#[inline]
 fn get_supply(token_contract_account: Name, sym_code: SymbolCode) -> Asset {
     let stats_table = STATS.index(token_contract_account, sym_code.raw());
     let st = stats_table.get(sym_code.raw(), "symbol does not exist");
     st.supply
-} */
+}
 
 #[inline]
 fn get_core_symbol(system_account: Option<Name>) -> Symbol {
@@ -387,6 +386,8 @@ fn get_core_symbol(system_account: Option<Name>) -> Symbol {
 struct SystemContract {
     gstate: GlobalState,
 }
+
+const OPEN_ACTION: ActionWrapper<(Name, Symbol, Name)> = ActionWrapper::new(name!("open"));
 
 #[contract]
 impl SystemContract {
@@ -461,10 +462,19 @@ impl SystemContract {
     fn setabi(acnt: Name, abi: Vec<u8>) {
         let table = ABI_HASH_TABLE.index(get_self(), get_self().raw());
         let mut itr = table.find(acnt.raw());
+
         if itr == table.end() {
-            table.emplace(acnt, AbiHash { owner: acnt });
+            table.emplace(
+                acnt,
+                AbiHash {
+                    owner: acnt,
+                    hash: sha256(&abi, abi.len() as u32),
+                },
+            );
         } else {
-            table.modify(&mut itr, SAME_PAYER, |t| {});
+            table.modify(&mut itr, SAME_PAYER, |t| {
+                t.hash = sha256(&abi, abi.len() as u32);
+            });
         }
     }
 
@@ -518,5 +528,12 @@ impl SystemContract {
                 },
             },
         );
+
+        let open_act = OPEN_ACTION.to_action(
+            TOKEN_ACCOUNT,
+            vec![PermissionLevel::new(get_self(), ACTIVE_PERMISSION)],
+            (REX_ACCOUNT, core, get_self()),
+        );
+        open_act.send();
     }
 }

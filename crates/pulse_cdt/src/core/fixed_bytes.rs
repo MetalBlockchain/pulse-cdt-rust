@@ -9,6 +9,12 @@ impl<const N: usize> FixedBytes<N> {
     }
 }
 
+impl<const N: usize> Default for FixedBytes<N> {
+    fn default() -> Self {
+        Self([0; N])
+    }
+}
+
 impl<const N: usize> NumBytes for FixedBytes<N> {
     fn num_bytes(&self) -> usize {
         N

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 pulse_cdt = { workspace = true }
+libm = { version = "0.2" }
 
 [build-dependencies]
 syn = { version = "1", features = ["full"] }

@@ -3,6 +3,9 @@ extern crate alloc;
 
 mod bytes;
 
+mod varint;
+pub use varint::*;
+
 pub use self::bytes::{DataStream, NumBytes, Read, ReadError, Write, WriteError};
 
 #[cfg(test)]

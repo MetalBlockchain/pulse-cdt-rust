@@ -6,7 +6,16 @@ use alloc::{
     vec::Vec,
 };
 
+use crate::VarUint32;
+
 use super::{NumBytes, Read, ReadError, Write, WriteError};
+
+impl NumBytes for usize {
+    #[inline(always)]
+    fn num_bytes(&self) -> usize {
+        VarUint32(*self as u32).num_bytes()
+    }
+}
 
 impl NumBytes for u8 {
     #[inline(always)]
@@ -81,7 +90,7 @@ impl NumBytes for f64 {
 impl NumBytes for String {
     #[inline(always)]
     fn num_bytes(&self) -> usize {
-        self.len() + 2 // 2 bytes for length prefix
+        self.len().num_bytes() + self.len()
     }
 }
 
@@ -105,7 +114,7 @@ impl<T: NumBytes> NumBytes for Option<T> {
 impl<T: NumBytes> NumBytes for Vec<T> {
     #[inline(always)]
     fn num_bytes(&self) -> usize {
-        let mut count = 4;
+        let mut count = self.len().num_bytes();
         for item in self {
             count += item.num_bytes();
         }
@@ -116,7 +125,7 @@ impl<T: NumBytes> NumBytes for Vec<T> {
 impl<T: NumBytes> NumBytes for VecDeque<T> {
     #[inline(always)]
     fn num_bytes(&self) -> usize {
-        let mut count = 4;
+        let mut count = self.len().num_bytes();
         for item in self {
             count += item.num_bytes();
         }
@@ -127,7 +136,7 @@ impl<T: NumBytes> NumBytes for VecDeque<T> {
 impl<K: Write + NumBytes, V: Write + NumBytes> NumBytes for BTreeMap<K, V> {
     #[inline(always)]
     fn num_bytes(&self) -> usize {
-        let mut count = 4;
+        let mut count = self.len().num_bytes();
         for (key, value) in self {
             count += key.num_bytes();
             count += value.num_bytes();
@@ -157,13 +166,20 @@ impl<T1: NumBytes, T2: NumBytes, T3: NumBytes, T4: NumBytes> NumBytes for (T1, T
     }
 }
 
+impl Read for usize {
+    #[inline(always)]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        VarUint32::read(bytes, pos).map(|v| v.0 as usize)
+    }
+}
+
 impl Read for u8 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
         if bytes.len() < *pos + core::mem::size_of::<u8>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u8::from_be_bytes([bytes[*pos]]);
+        let value = u8::from_le_bytes([bytes[*pos]]);
         *pos += core::mem::size_of::<u8>();
         Ok(value)
     }
@@ -183,7 +199,7 @@ impl Read for u16 {
         if bytes.len() < *pos + core::mem::size_of::<u16>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u16::from_be_bytes([bytes[*pos], bytes[*pos + 1]]);
+        let value = u16::from_le_bytes([bytes[*pos], bytes[*pos + 1]]);
         *pos += core::mem::size_of::<u16>();
         Ok(value)
     }
@@ -203,7 +219,7 @@ impl Read for u32 {
         if bytes.len() < *pos + core::mem::size_of::<u32>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u32::from_be_bytes([
+        let value = u32::from_le_bytes([
             bytes[*pos],
             bytes[*pos + 1],
             bytes[*pos + 2],
@@ -228,7 +244,7 @@ impl Read for u64 {
         if bytes.len() < *pos + core::mem::size_of::<u64>() {
             return Err(ReadError::NotEnoughBytes);
         }
-        let value = u64::from_be_bytes([
+        let value = u64::from_le_bytes([
             bytes[*pos],
             bytes[*pos + 1],
             bytes[*pos + 2],
@@ -272,8 +288,7 @@ impl Read for f64 {
 impl Read for String {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        // Read 2-byte length prefix (big endian)
-        let len = u16::read(bytes, pos).expect("failed to read u16") as usize;
+        let len = usize::read(bytes, pos)?;
 
         if *pos + len > bytes.len() {
             return Err(ReadError::NotEnoughBytes);
@@ -295,7 +310,7 @@ where
 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let len = u32::read(bytes, pos)? as usize;
+        let len = usize::read(bytes, pos)?;
 
         if *pos + len > bytes.len() {
             return Err(ReadError::NotEnoughBytes);
@@ -316,7 +331,7 @@ where
 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let len = u32::read(bytes, pos)? as usize;
+        let len = usize::read(bytes, pos)?;
 
         if *pos + len > bytes.len() {
             return Err(ReadError::NotEnoughBytes);
@@ -334,7 +349,7 @@ where
 impl<K: Read + Write + NumBytes + Ord, V: Read + Write + NumBytes> Read for BTreeMap<K, V> {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
-        let len = u32::read(bytes, pos)? as usize;
+        let len = usize::read(bytes, pos)?;
 
         if *pos + len > bytes.len() {
             return Err(ReadError::NotEnoughBytes);
@@ -416,10 +431,17 @@ impl<T: Read> Read for Option<T> {
     }
 }
 
+impl Write for usize {
+    #[inline(always)]
+    fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
+        VarUint32(*self as u32).write(bytes, pos)
+    }
+}
+
 impl Write for u8 {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let value = self.to_be_bytes();
+        let value = self.to_le_bytes();
         bytes[*pos] = value[0];
         *pos += value.len();
         Ok(())
@@ -436,7 +458,7 @@ impl Write for i8 {
 impl Write for u16 {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let value = self.to_be_bytes();
+        let value = self.to_le_bytes();
         bytes[*pos] = value[0];
         bytes[*pos + 1] = value[1];
         *pos += value.len();
@@ -454,7 +476,7 @@ impl Write for i16 {
 impl Write for u32 {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let value = self.to_be_bytes();
+        let value = self.to_le_bytes();
         bytes[*pos] = value[0];
         bytes[*pos + 1] = value[1];
         bytes[*pos + 2] = value[2];
@@ -474,7 +496,7 @@ impl Write for i32 {
 impl Write for u64 {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let value = self.to_be_bytes();
+        let value = self.to_le_bytes();
         bytes[*pos] = value[0];
         bytes[*pos + 1] = value[1];
         bytes[*pos + 2] = value[2];
@@ -512,9 +534,8 @@ impl Write for f64 {
 impl<'a> Write for String {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let len = self.len() as u16;
-        len.write(bytes, pos).expect("failed to write length");
-        for i in 0..len {
+        self.len().write(bytes, pos)?;
+        for i in 0..self.len() {
             bytes[*pos] = self.as_bytes()[i as usize];
             *pos = pos.saturating_add(1);
         }
@@ -545,8 +566,7 @@ impl<T: Write> Write for Option<T> {
 impl<T: Write> Write for Vec<T> {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let len = self.len() as u32;
-        len.write(bytes, pos)?;
+        self.len().write(bytes, pos)?;
         for item in self.iter() {
             item.write(bytes, pos)?;
         }
@@ -557,8 +577,7 @@ impl<T: Write> Write for Vec<T> {
 impl<T: Write> Write for VecDeque<T> {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let len = self.len() as u32;
-        len.write(bytes, pos)?;
+        self.len().write(bytes, pos)?;
         for item in self.iter() {
             item.write(bytes, pos)?;
         }
@@ -569,8 +588,7 @@ impl<T: Write> Write for VecDeque<T> {
 impl<K: Write + NumBytes, V: Write + NumBytes> Write for BTreeMap<K, V> {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
-        let len = self.len() as u32;
-        len.write(bytes, pos)?;
+        self.len().write(bytes, pos)?;
         for (key, value) in self.iter() {
             key.write(bytes, pos)?;
             value.write(bytes, pos)?;

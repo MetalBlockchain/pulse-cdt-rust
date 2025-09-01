@@ -5,6 +5,7 @@ members = [
     "contracts",
     "contracts/pulse_token",
     "contracts/pulse_system",
+    "contracts/pulse_msig",
     "crates/pulse_name",
     "crates/pulse_proc_macro",
     "crates/pulse_serialization",
@@ -19,6 +20,7 @@ pulse_name = { version = "=0.1.0", path = "crates/pulse_name", default-features 
 pulse_serialization = { version = "=0.1.0", path = "crates/pulse_serialization", default-features = false }
 pulse_token = { version = "=0.1.0", path = "contracts/pulse_token", default-features = false }
 pulse_system = { version = "=0.1.0", path = "contracts/pulse_system", default-features = false }
+pulse_msig = { version = "=0.1.0", path = "contracts/pulse_system", default-features = false }
 pulse_bytes = { version = "=0.1.0", path = "crates/pulse_bytes", default-features = false }
 
 [profile.release]

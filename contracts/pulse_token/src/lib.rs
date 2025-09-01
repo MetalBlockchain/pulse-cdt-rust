@@ -45,7 +45,7 @@ impl TokenContract {
         let stats_table = STATS.index(get_self(), sym.code().raw());
         let existing = stats_table.find(sym.code().raw());
         check(
-            existing != stats_table.end(),
+            existing == stats_table.end(),
             "token with symbol already exists",
         );
 
@@ -96,7 +96,7 @@ impl TokenContract {
         );
 
         stats_table.modify(&mut st, SAME_PAYER, |s| {
-            s.supply.amount += quantity.amount;
+            s.supply += quantity;
         });
 
         add_balance(st.issuer, quantity, st.issuer);

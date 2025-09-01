@@ -38,6 +38,7 @@ pub enum ReadError {
     /// Not enough bytes.
     NotEnoughBytes,
     ParseError,
+    Overflow,
 }
 
 /// Write bytes.

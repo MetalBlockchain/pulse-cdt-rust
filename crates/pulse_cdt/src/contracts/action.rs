@@ -83,10 +83,7 @@ pub fn send_inline(data: &Vec<u8>) {
 
 #[derive(Clone, Debug, Default, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
-pub struct Action<T>
-where
-    T: Write,
-{
+pub struct Action {
     /// Name of the account the action is intended for
     pub account: Name,
     /// Name of the action
@@ -94,13 +91,10 @@ where
     /// List of permissions that authorize this action
     pub authorization: Vec<PermissionLevel>,
     /// Payload data
-    pub data: T,
+    pub data: Vec<u8>,
 }
 
-impl<T> Action<T>
-where
-    T: Write,
-{
+impl Action {
     pub fn send(&self) {
         let serialized = self.pack().expect("failed to serialize action");
         send_inline(&serialized);

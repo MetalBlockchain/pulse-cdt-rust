@@ -33,16 +33,16 @@ where
         account: Name,
         authorization: Vec<PermissionLevel>,
         data: T,
-    ) -> Action<T> {
+    ) -> Action {
         Action {
             account: account,
             name: self.name.clone(),
             authorization: authorization,
-            data,
+            data: data.pack().expect("failed to serialize action data"),
         }
     }
 
-    pub fn send(&self, action: &Action<T>) {
+    pub fn send(&self, action: &Action) {
         action.send();
     }
 }

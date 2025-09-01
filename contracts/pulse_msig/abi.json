@@ -1,0 +1,240 @@
+{
+  "actions": [
+    {
+      "name": "propose",
+      "ricardian_contract": "",
+      "type": "propose"
+    },
+    {
+      "name": "approve",
+      "ricardian_contract": "",
+      "type": "approve"
+    },
+    {
+      "name": "unapprove",
+      "ricardian_contract": "",
+      "type": "unapprove"
+    },
+    {
+      "name": "cancel",
+      "ricardian_contract": "",
+      "type": "cancel"
+    },
+    {
+      "name": "exec",
+      "ricardian_contract": "",
+      "type": "exec"
+    },
+    {
+      "name": "invalidate",
+      "ricardian_contract": "",
+      "type": "invalidate"
+    }
+  ],
+  "error_messages": [],
+  "ricardian_clauses": [],
+  "structs": [
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proposer",
+          "type": "name"
+        },
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "level",
+          "type": "permissionlevel"
+        }
+      ],
+      "name": "unapprove"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "version",
+          "type": "uint8"
+        },
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "requested_approvals",
+          "type": "bytes"
+        },
+        {
+          "name": "provided_approvals",
+          "type": "bytes"
+        }
+      ],
+      "name": "ApprovalsInfo"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proposer",
+          "type": "name"
+        },
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "level",
+          "type": "permissionlevel"
+        },
+        {
+          "name": "proposal_hash",
+          "type": "checksum256"
+        }
+      ],
+      "name": "approve"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "account",
+          "type": "name"
+        },
+        {
+          "name": "last_invalidation_time",
+          "type": "timepoint"
+        }
+      ],
+      "name": "Invalidation"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "account",
+          "type": "name"
+        }
+      ],
+      "name": "invalidate"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proposer",
+          "type": "name"
+        },
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "executer",
+          "type": "name"
+        }
+      ],
+      "name": "exec"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "level",
+          "type": "permissionlevel"
+        },
+        {
+          "name": "time",
+          "type": "timepoint"
+        }
+      ],
+      "name": "Approval"
+    },
+    {
+      "base": "",
+      "fields": [],
+      "name": "MsigContract"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "packed_transaction",
+          "type": "bytes"
+        },
+        {
+          "name": "earliest_exec_time",
+          "type": "option"
+        }
+      ],
+      "name": "Proposal"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proposer",
+          "type": "name"
+        },
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "canceler",
+          "type": "name"
+        }
+      ],
+      "name": "cancel"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proposer",
+          "type": "name"
+        },
+        {
+          "name": "proposal_name",
+          "type": "name"
+        },
+        {
+          "name": "requested",
+          "type": "bytes"
+        }
+      ],
+      "name": "propose"
+    }
+  ],
+  "tables": [
+    {
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "name": "proposal",
+      "type": "Proposal"
+    },
+    {
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "name": "approvals2",
+      "type": "ApprovalsInfo"
+    },
+    {
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "name": "invals",
+      "type": "Invalidation"
+    }
+  ],
+  "types": [],
+  "version": "eosio::abi/1.1"
+}

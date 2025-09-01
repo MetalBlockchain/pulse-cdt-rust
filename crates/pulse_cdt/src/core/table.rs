@@ -241,7 +241,7 @@ where
 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.idx == other.idx && self.inner == other.inner
+        self.idx == other.idx && self.item == other.item
     }
 }
 

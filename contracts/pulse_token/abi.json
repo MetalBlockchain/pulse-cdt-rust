@@ -1,0 +1,189 @@
+{
+  "actions": [
+    {
+      "name": "create",
+      "ricardian_contract": "",
+      "type": "create"
+    },
+    {
+      "name": "issue",
+      "ricardian_contract": "",
+      "type": "issue"
+    },
+    {
+      "name": "retire",
+      "ricardian_contract": "",
+      "type": "retire"
+    },
+    {
+      "name": "transfer",
+      "ricardian_contract": "",
+      "type": "transfer"
+    },
+    {
+      "name": "open",
+      "ricardian_contract": "",
+      "type": "open"
+    },
+    {
+      "name": "close",
+      "ricardian_contract": "",
+      "type": "close"
+    }
+  ],
+  "error_messages": [],
+  "ricardian_clauses": [],
+  "structs": [
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "issuer",
+          "type": "name"
+        },
+        {
+          "name": "max_supply",
+          "type": "asset"
+        }
+      ],
+      "name": "create"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "from",
+          "type": "name"
+        },
+        {
+          "name": "to",
+          "type": "name"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ],
+      "name": "transfer"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "balance",
+          "type": "asset"
+        }
+      ],
+      "name": "Account"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "to",
+          "type": "name"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ],
+      "name": "issue"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "symbol",
+          "type": "symbol"
+        },
+        {
+          "name": "ram_payer",
+          "type": "name"
+        }
+      ],
+      "name": "open"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "symbol",
+          "type": "symbol"
+        }
+      ],
+      "name": "close"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "supply",
+          "type": "asset"
+        },
+        {
+          "name": "max_supply",
+          "type": "asset"
+        },
+        {
+          "name": "issuer",
+          "type": "name"
+        }
+      ],
+      "name": "CurrencyStats"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "quantity",
+          "type": "asset"
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ],
+      "name": "retire"
+    },
+    {
+      "base": "",
+      "fields": [],
+      "name": "TokenContract"
+    }
+  ],
+  "tables": [
+    {
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "name": "accounts",
+      "type": "Account"
+    },
+    {
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "name": "stats",
+      "type": "CurrencyStats"
+    }
+  ],
+  "types": [],
+  "version": "eosio::abi/1.1"
+}

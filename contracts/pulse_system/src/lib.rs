@@ -9,13 +9,11 @@ use pulse_cdt::{
     action, constructor, contract, contracts::{
         require_auth, set_privileged, set_resource_limits, sha256, ActionWrapper, Authority, PermissionLevel
     }, core::{
-        check, Asset, MultiIndexDefinition, Name, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
+        check, Asset, BlockTimestamp, MultiIndexDefinition, Name, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
     }, name, symbol_with_code, table, NumBytes, Read, Write, SAME_PAYER
 };
 
-use crate::{
-    native::{ABI_HASH_TABLE, AbiHash},
-};
+use crate::native::{ABI_HASH_TABLE, AbiHash};
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 pub struct Connector {
@@ -332,8 +330,12 @@ const RAM_SYMBOL: Symbol = symbol_with_code!(0, "RAM");
 const RAMCORE_SYMBOL: Symbol = symbol_with_code!(4, "RAMCORE");
 const REX_SYMBOL: Symbol = symbol_with_code!(4, "REX");
 const REX_ACCOUNT: Name = name!("pulse.rex");
+const INFLATION_PRECISION: i64 = 100; // 2 decimals
+const DEFAULT_ANNUAL_RATE: i64 = 500; // 5% annual rate
+const DEFAULT_INFLATION_PAY_FACTOR: i64 = 50000; // producers pay share = 10000 / 50000 = 20% of the inflation
+const DEFAULT_VOTEPAY_FACTOR: i64 = 40000; // per-block pay share = 10000 / 40000 = 25% of the producer pay
 
-#[derive(Read, Write, NumBytes, Clone, PartialEq)]
+#[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
 #[table(primary_key = 0)]
 pub struct GlobalState {
     max_ram_size: u64,
@@ -350,6 +352,40 @@ impl GlobalState {
 
 const GLOBAL_STATE_SINGLETON: SingletonDefinition<GlobalState> =
     SingletonDefinition::new(name!("global"));
+
+#[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
+#[table(primary_key = 0)]
+pub struct GlobalState2 {
+    new_ram_per_block: u16,
+    last_ram_increase: BlockTimestamp,
+    last_block_num: BlockTimestamp,
+    total_producer_votepay_share: f64,
+    revision: u8,
+}
+
+const GLOBAL_STATE2_SINGLETON: SingletonDefinition<GlobalState2> =
+    SingletonDefinition::new(name!("global2"));
+
+#[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
+#[table(primary_key = 0)]
+pub struct GlobalState3 {
+    last_vpay_state_update: TimePoint,
+    total_vpay_share_change_rate: f64,
+}
+
+const GLOBAL_STATE3_SINGLETON: SingletonDefinition<GlobalState3> =
+    SingletonDefinition::new(name!("global3"));
+
+#[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
+#[table(primary_key = 0)]
+pub struct GlobalState4 {
+    continuous_rate: f64,
+    inflation_pay_factor: i64,
+    votepay_factor: i64,
+}
+
+const GLOBAL_STATE4_SINGLETON: SingletonDefinition<GlobalState4> =
+    SingletonDefinition::new(name!("global4"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 #[table(primary_key = row.supply.symbol.code().raw())]
@@ -383,8 +419,26 @@ fn get_core_symbol(system_account: Option<Name>) -> Symbol {
     itr.quote.balance.symbol
 }
 
+#[inline]
+fn get_default_inflation_parameters() -> GlobalState4 {
+    let mut gs4 = GlobalState4::default();
+    gs4.continuous_rate = get_continuous_rate(DEFAULT_ANNUAL_RATE);
+    gs4.inflation_pay_factor = DEFAULT_INFLATION_PAY_FACTOR;
+    gs4.votepay_factor = DEFAULT_VOTEPAY_FACTOR;
+    gs4
+}
+
+#[inline]
+fn get_continuous_rate(annual_rate: i64) -> f64 {
+    let x = (annual_rate as f64) / (100.0 * INFLATION_PRECISION as f64);
+    libm::log1p(x)
+}
+
 struct SystemContract {
     gstate: GlobalState,
+    gstate2: GlobalState2,
+    gstate3: GlobalState3,
+    gstate4: GlobalState4,
 }
 
 const OPEN_ACTION: ActionWrapper<(Name, Symbol, Name)> = ActionWrapper::new(name!("open"));
@@ -394,13 +448,31 @@ impl SystemContract {
     #[constructor]
     fn constructor() -> Self {
         let global = GLOBAL_STATE_SINGLETON.get_instance(get_self(), get_self().raw());
+        let global2 = GLOBAL_STATE2_SINGLETON.get_instance(get_self(), get_self().raw());
+        let global3 = GLOBAL_STATE3_SINGLETON.get_instance(get_self(), get_self().raw());
+        let global4 = GLOBAL_STATE4_SINGLETON.get_instance(get_self(), get_self().raw());
 
         Self {
-            gstate: if (global.exists()) {
+            gstate: if global.exists() {
                 global.get()
             } else {
-                global.get()
+                GlobalState::default()
             },
+            gstate2: if global2.exists() {
+                global2.get()
+            } else {
+                GlobalState2::default()
+            },
+            gstate3: if global3.exists() {
+                global3.get()
+            } else {
+                GlobalState3::default()
+            },
+            gstate4: if global4.exists() {
+                global4.get()
+            } else {
+                get_default_inflation_parameters()
+            }
         }
     }
 
@@ -491,7 +563,7 @@ impl SystemContract {
         let rammarket = RAMMARKET.index(get_self(), get_self().raw());
         let itr = rammarket.find(RAMCORE_SYMBOL.raw());
         check(
-            itr != rammarket.end(),
+            itr == rammarket.end(),
             "system contract has already been initialized",
         );
 
@@ -529,11 +601,10 @@ impl SystemContract {
             },
         );
 
-        let open_act = OPEN_ACTION.to_action(
+        OPEN_ACTION.to_action(
             TOKEN_ACCOUNT,
             vec![PermissionLevel::new(get_self(), ACTIVE_PERMISSION)],
             (REX_ACCOUNT, core, get_self()),
-        );
-        open_act.send();
+        ).send();
     }
 }

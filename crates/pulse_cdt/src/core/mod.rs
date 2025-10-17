@@ -7,6 +7,9 @@ pub use check::check;
 mod crypto;
 pub use crypto::*;
 
+mod enum_utils;
+pub use enum_utils::*;
+
 mod fixed_bytes;
 pub use fixed_bytes::*;
 

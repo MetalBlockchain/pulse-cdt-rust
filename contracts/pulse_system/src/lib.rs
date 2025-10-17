@@ -2,18 +2,26 @@
 #![no_main]
 extern crate alloc;
 
+mod exchange_state;
 mod native;
 
-use alloc::{collections::btree_map::BTreeMap, string::String, vec, vec::Vec};
+use alloc::{
+    collections::btree_map::BTreeMap,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use pulse_cdt::{
     action, constructor, contract, contracts::{
-        require_auth, set_privileged, set_resource_limits, sha256, ActionWrapper, Authority, PermissionLevel
+        current_block_time, get_resource_limits, require_auth, set_privileged, set_resource_limits, sha256, ActionWrapper, Authority, PermissionLevel
     }, core::{
-        check, Asset, BlockTimestamp, MultiIndexDefinition, Name, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
-    }, name, symbol_with_code, table, NumBytes, Read, Write, SAME_PAYER
+        check, has_field, Asset, BitEnum, BlockTimestamp, MultiIndexDefinition, Name, SingletonDefinition, Symbol, SymbolCode, Table, TimePoint, TimePointSec
+    }, destructor, name, symbol_with_code, table, NumBytes, Read, Write, SAME_PAYER
 };
 
-use crate::native::{ABI_HASH_TABLE, AbiHash};
+use crate::{
+    __SystemContract_contract_ctx::get_self, exchange_state::{get_bancor_input, get_bancor_output}, native::{AbiHash, ABI_HASH_TABLE}
+};
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 pub struct Connector {
@@ -27,6 +35,31 @@ pub struct ExchangeState {
     pub supply: Asset,
     pub base: Connector,
     pub quote: Connector,
+}
+
+impl ExchangeState {
+    pub fn direct_convert(&mut self, from: &Asset, to: &Symbol) -> Asset {
+        let sell_symbol = from.symbol;
+        let base_symbol = self.base.balance.symbol;
+        let quote_symbol = self.quote.balance.symbol;
+        check(sell_symbol != *to, "cannot convert to the same symbol");
+
+        let mut out = Asset::new(0, to.clone());
+
+        if sell_symbol == base_symbol && *to == quote_symbol {
+            out.amount = get_bancor_output(self.base.balance.amount, self.quote.balance.amount, from.amount);
+            self.base.balance += *from;
+            self.quote.balance -= out;
+        } else if sell_symbol == quote_symbol && *to == base_symbol {
+            out.amount = get_bancor_output(self.quote.balance.amount, self.base.balance.amount, from.amount);
+            self.quote.balance += *from;
+            self.base.balance -= out;
+        } else {
+            check(false, "invalid conversion");
+        }
+
+        out
+    }
 }
 
 const RAMMARKET: MultiIndexDefinition<ExchangeState> =
@@ -92,6 +125,19 @@ pub struct VoterInfo {
     flags1: u32,
     reserved2: u32,
     reserved3: Asset,
+}
+
+#[repr(u32)]
+pub enum VoterInfoFlags1Fields {
+    RAM_MANAGED = 1,
+    NET_MANAGED = 2,
+    CPU_MANAGED = 4,
+}
+
+impl BitEnum for VoterInfoFlags1Fields {
+    type Repr = u32;
+    #[inline]
+    fn to_bits(self) -> Self::Repr { self as u32 }
 }
 
 const VOTERS_TABLE: MultiIndexDefinition<VoterInfo> = MultiIndexDefinition::new(name!("voters"));
@@ -217,8 +263,23 @@ pub struct GlobalStateRAM {
     total_xpr: u64,
 }
 
-const GLOBAL_STATE_RAM_SINGLETON: MultiIndexDefinition<GlobalStateRAM> =
-    MultiIndexDefinition::new(name!("globalram"));
+impl Default for GlobalStateRAM {
+    fn default() -> Self {
+        Self {
+            ram_price_per_byte: Asset {
+                amount: 200,
+                symbol: symbol_with_code!(4, "XPR"),
+            },
+            max_per_user_bytes: 3 * 1024 * 1024, // 3 MB
+            ram_fee_percent: 1000,            // 10%
+            total_ram: 0,
+            total_xpr: 0,
+        }
+    }
+}
+
+const GLOBAL_STATE_RAM_SINGLETON: SingletonDefinition<GlobalStateRAM> =
+    SingletonDefinition::new(name!("globalram"));
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
 #[table(primary_key = row.account.raw())]
@@ -326,10 +387,15 @@ pub struct RexOrder {
 
 const ACTIVE_PERMISSION: Name = name!("active");
 const TOKEN_ACCOUNT: Name = name!("pulse.token");
+const RAM_ACCOUNT: Name = name!("pulse.ram");
+const RAMFEE_ACCOUNT: Name = name!("pulse.ramfee");
 const RAM_SYMBOL: Symbol = symbol_with_code!(0, "RAM");
 const RAMCORE_SYMBOL: Symbol = symbol_with_code!(4, "RAMCORE");
 const REX_SYMBOL: Symbol = symbol_with_code!(4, "REX");
 const REX_ACCOUNT: Name = name!("pulse.rex");
+
+const RAM_GIFT_BYTES: i64 = 1400;
+
 const INFLATION_PRECISION: i64 = 100; // 2 decimals
 const DEFAULT_ANNUAL_RATE: i64 = 500; // 5% annual rate
 const DEFAULT_INFLATION_PAY_FACTOR: i64 = 50000; // producers pay share = 10000 / 50000 = 20% of the inflation
@@ -439,9 +505,13 @@ struct SystemContract {
     gstate2: GlobalState2,
     gstate3: GlobalState3,
     gstate4: GlobalState4,
+
+    gstateram: GlobalStateRAM,
 }
 
 const OPEN_ACTION: ActionWrapper<(Name, Symbol, Name)> = ActionWrapper::new(name!("open"));
+const TRANSFER_ACTION: ActionWrapper<(Name, Name, Asset, String)> =
+    ActionWrapper::new(name!("transfer"));
 
 #[contract]
 impl SystemContract {
@@ -451,6 +521,7 @@ impl SystemContract {
         let global2 = GLOBAL_STATE2_SINGLETON.get_instance(get_self(), get_self().raw());
         let global3 = GLOBAL_STATE3_SINGLETON.get_instance(get_self(), get_self().raw());
         let global4 = GLOBAL_STATE4_SINGLETON.get_instance(get_self(), get_self().raw());
+        let gstateram = GLOBAL_STATE_RAM_SINGLETON.get_instance(get_self(), get_self().raw());
 
         Self {
             gstate: if global.exists() {
@@ -472,14 +543,34 @@ impl SystemContract {
                 global4.get()
             } else {
                 get_default_inflation_parameters()
-            }
+            },
+            gstateram: if gstateram.exists() {
+                gstateram.get()
+            } else {
+                GlobalStateRAM::default()
+            },
         }
     }
 
+    #[destructor]
+    fn destructor(self) {
+        let global = GLOBAL_STATE_SINGLETON.get_instance(get_self(), get_self().raw());
+        let global2 = GLOBAL_STATE2_SINGLETON.get_instance(get_self(), get_self().raw());
+        let global3 = GLOBAL_STATE3_SINGLETON.get_instance(get_self(), get_self().raw());
+        let global4 = GLOBAL_STATE4_SINGLETON.get_instance(get_self(), get_self().raw());
+        let gstateram = GLOBAL_STATE_RAM_SINGLETON.get_instance(get_self(), get_self().raw());
+
+        global.set(self.gstate, get_self());
+        global2.set(self.gstate2, get_self());
+        global3.set(self.gstate3, get_self());
+        global4.set(self.gstate4, get_self());
+        gstateram.set(self.gstateram, get_self());
+    }
+
     #[action]
-    fn setpriv(account: Name, ispriv: u8) {
+    fn setpriv(account: Name, is_priv: u8) {
         require_auth(get_self());
-        set_privileged(account, ispriv == 1);
+        set_privileged(account, is_priv == 1);
     }
 
     #[action]
@@ -531,15 +622,15 @@ impl SystemContract {
     }
 
     #[action]
-    fn setabi(acnt: Name, abi: Vec<u8>) {
+    fn setabi(account: Name, abi: Vec<u8>) {
         let table = ABI_HASH_TABLE.index(get_self(), get_self().raw());
-        let mut itr = table.find(acnt.raw());
+        let mut itr = table.find(account.raw());
 
         if itr == table.end() {
             table.emplace(
-                acnt,
+                account,
                 AbiHash {
-                    owner: acnt,
+                    owner: account,
                     hash: sha256(&abi, abi.len() as u32),
                 },
             );
@@ -601,10 +692,137 @@ impl SystemContract {
             },
         );
 
-        OPEN_ACTION.to_action(
-            TOKEN_ACCOUNT,
-            vec![PermissionLevel::new(get_self(), ACTIVE_PERMISSION)],
-            (REX_ACCOUNT, core, get_self()),
-        ).send();
+        OPEN_ACTION
+            .to_action(
+                TOKEN_ACCOUNT,
+                vec![PermissionLevel::new(get_self(), ACTIVE_PERMISSION)],
+                (REX_ACCOUNT, core, get_self()),
+            )
+            .send();
+    }
+
+    #[action]
+    fn buyrambsys(&mut self, payer: Name, receiver: Name, bytes: u32) {
+        let rammarket = RAMMARKET.index(get_self(), get_self().raw());
+        let itr = rammarket.find(RAMCORE_SYMBOL.raw());
+        let ram_reserve = itr.base.balance.amount;
+        let eos_reserve = itr.quote.balance.amount;
+        let cost = get_bancor_input(ram_reserve, eos_reserve, bytes as i64);
+        let cost_plus_fee = cost as f64 / 0.995; // ram fee 0.5%
+        
+        self.buyramsys(
+            payer,
+            receiver,
+            Asset {
+                amount: cost_plus_fee as i64,
+                symbol: get_core_symbol(None),
+            },
+        );
+    }
+
+    #[action]
+    pub fn buyramsys(&mut self, payer: Name, receiver: Name, quant: Asset) {
+        require_auth(payer);
+        //checkPermission(receiver, ACTIVE_PERMISSION);
+
+        self.update_ram_supply();
+
+        check(
+            quant.symbol == get_core_symbol(None),
+            "must buy ram with core token",
+        );
+        check(quant.amount > 0, "must purchase a positive amount");
+
+        let fee = Asset {
+            amount: quant.amount + 199 / 200,
+            symbol: quant.symbol,
+        }; // ram fee 0.5%
+        let quant_after_fee = Asset {
+            amount: quant.amount - fee.amount,
+            symbol: quant.symbol,
+        };
+
+        TRANSFER_ACTION
+            .to_action(
+                TOKEN_ACCOUNT,
+                vec![
+                    PermissionLevel::new(payer, ACTIVE_PERMISSION),
+                    PermissionLevel::new(RAM_ACCOUNT, ACTIVE_PERMISSION),
+                ],
+                (payer, RAM_ACCOUNT, quant_after_fee, "buy ram".to_string()),
+            )
+            .send();
+
+        if fee.amount > 0 {
+            TRANSFER_ACTION
+                .to_action(
+                    TOKEN_ACCOUNT,
+                    vec![PermissionLevel::new(payer, ACTIVE_PERMISSION)],
+                    (payer, RAMFEE_ACCOUNT, fee, "ram fee".to_string()),
+                )
+                .send();
+        }
+
+        let mut bytes_out = 0i64;
+        let rammarket = RAMMARKET.index(get_self(), get_self().raw());
+        let mut market = rammarket.get(RAMCORE_SYMBOL.raw(), "ram market does not exist");
+        rammarket.modify(&mut market, SAME_PAYER, |es| {
+            bytes_out = es.direct_convert(&quant_after_fee, &RAM_SYMBOL).amount
+        });
+
+        check(bytes_out > 0, "must reserve a positive amount");
+
+        self.gstate.total_ram_bytes_reserved += bytes_out as u64;
+        self.gstate.total_ram_stake += quant_after_fee.amount;
+
+        let userres = USER_RESOURCES_TABLE.index(get_self(), receiver.raw());
+        let mut res_itr = userres.find(receiver.raw());
+        let core_symbol = get_core_symbol(None);
+        if res_itr == userres.end() {
+            userres.emplace(
+                receiver,
+                UserResources {
+                    owner: receiver,
+                    net_weight: Asset {
+                        amount: 0,
+                        symbol: core_symbol,
+                    },
+                    cpu_weight: Asset {
+                        amount: 0,
+                        symbol: core_symbol,
+                    },
+                    ram_bytes: bytes_out,
+                },
+            );
+        } else {
+            userres.modify(&mut res_itr, receiver, |res| {
+                res.ram_bytes += bytes_out;
+            });
+        }
+
+        let voters = VOTERS_TABLE.index(get_self(), get_self().raw());
+        let voter_itr = voters.find(receiver.raw());
+        if voter_itr == voters.end() || !has_field(voter_itr.flags1, VoterInfoFlags1Fields::RAM_MANAGED) {
+            let (ram, net, cpu) = get_resource_limits(receiver);
+            set_resource_limits(receiver, ram + RAM_GIFT_BYTES, net, cpu);
+        }
+    }
+
+    fn update_ram_supply(&mut self) {
+        let cbt = current_block_time();
+
+        if cbt <= self.gstate2.last_ram_increase {
+            return;
+        }
+
+        let rammarket = RAMMARKET.index(get_self(), get_self().raw());
+        let mut itr = rammarket.find(RAMCORE_SYMBOL.raw());
+        let new_ram: u32 = (cbt.slot - self.gstate2.last_ram_increase.slot) * self.gstate2.new_ram_per_block as u32;
+        self.gstate.max_ram_size += new_ram as u64;
+
+        rammarket.modify(&mut itr, SAME_PAYER, |m| {
+            m.base.balance.amount += new_ram as i64;
+        });
+        self.gstate2.last_ram_increase = cbt;
     }
 }

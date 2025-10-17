@@ -95,6 +95,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
 
     // Find constructor (at most one) & actions
     let mut constructor: Option<ImplItemMethod> = None;
+    let mut destructor: Option<ImplItemMethod> = None;
     let mut actions: Vec<ActionMeta> = Vec::new();
 
     for item in &impl_block.items {
@@ -111,12 +112,33 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
                 constructor = Some(m.clone());
             }
 
+            if has_attr(&m.attrs, "destructor") {
+                // must take `self` by value
+                match receiver_kind(m) {
+                    ReceiverKind::Value => {} // ok
+                    _ => {
+                        return Err(syn::Error::new(
+                            m.sig.span(),
+                            "#[destructor] must take `self` by value",
+                        ));
+                    }
+                }
+                ensure_arg_count(m, 0, "destructor")?;
+                if destructor.is_some() {
+                    return Err(syn::Error::new(
+                        m.sig.span(),
+                        "only one #[destructor] is allowed",
+                    ));
+                }
+                destructor = Some(m.clone());
+            }
+
             if let Some(cfg) = parse_action_attr(&m.attrs)? {
                 // CHANGED: allow &self OR no receiver; forbid &mut self / self
                 let rk = receiver_kind(m);
                 match rk {
-                    ReceiverKind::None | ReceiverKind::Ref => {}
-                    ReceiverKind::MutRef | ReceiverKind::Value => {
+                    ReceiverKind::None | ReceiverKind::Ref | ReceiverKind::MutRef => {}
+                    ReceiverKind::Value => {
                         return Err(syn::Error::new(
                             m.sig.span(),
                             "#[action] methods must be static or take `&self` (not `&mut self` or `self`)",
@@ -138,12 +160,21 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
     let ctor_arm = if let Some(m) = constructor.as_ref() {
         let ident = &m.sig.ident;
         quote! {
-            let __instance: #self_ty = <#self_ty>::#ident();
+            let mut __instance: #self_ty = <#self_ty>::#ident();
         }
     } else {
         quote! {
-            let __instance: #self_ty = ::core::default::Default::default();
+            let mut __instance: #self_ty = ::core::default::Default::default();
         }
+    };
+
+    let dtor_call = if let Some(m) = destructor.as_ref() {
+        let ident = &m.sig.ident;
+        quote! {
+            __instance.#ident();
+        }
+    } else {
+        quote! {}
     };
 
     // Generate action arms
@@ -184,6 +215,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
         let call_no_args = match a.rk {
             ReceiverKind::None => quote! { <#self_ty>::#method_ident() },
             ReceiverKind::Ref => quote! { __instance.#method_ident() },
+            ReceiverKind::MutRef => quote! { __instance.#method_ident() },
             _ => unreachable!(),
         };
 
@@ -206,7 +238,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
                     quote! { <#self_ty>::#method_ident( #args ) }
                 }
 
-                ReceiverKind::Ref => {
+                ReceiverKind::Ref | ReceiverKind::MutRef => {
                     let args = quote! { #(#bind_idents),* };
                     quote! { __instance.#method_ident( #args ) }
                 }
@@ -323,6 +355,8 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             else if code == receiver {
                 pulse_cdt::core::check(false, "unknown action");
             }
+
+            #dtor_call
 
             // guard drops here, clearing the receiver
             core::mem::drop(__guard);

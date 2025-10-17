@@ -8,9 +8,9 @@ pub use ::core::ffi::c_char;
 pub use ::core::ffi::c_void;
 
 pub use pulse_proc_macro::{
-    action, constructor, contract, dispatch, name, name_raw, symbol_with_code, table,
+    action, constructor, destructor, contract, dispatch, name, name_raw, symbol_with_code, table,
 };
-pub use pulse_serialization::{DataStream, NumBytes, Read, ReadError, Write, WriteError};
+pub use pulse_serialization::{DataStream, NumBytes, Read, ReadError, Write, WriteError, VarInt32, VarUint32};
 
 use crate::core::Name;
 

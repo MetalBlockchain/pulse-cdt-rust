@@ -81,14 +81,5 @@ impl MsigContract {
 
         let inv_table = INVALIDATIONS.index(get_self(), get_self().raw());
         let it = inv_table.find(account.raw());
-
-        if it == inv_table.end() {
-            inv_table.emplace(account, Invalidation {
-                account: account,
-                last_invalidation_time:
-            })
-        } else {
-
-        }
     }
 }

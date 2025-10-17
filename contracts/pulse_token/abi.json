@@ -38,15 +38,37 @@
       "base": "",
       "fields": [
         {
-          "name": "issuer",
-          "type": "name"
+          "name": "supply",
+          "type": "asset"
         },
         {
           "name": "max_supply",
           "type": "asset"
+        },
+        {
+          "name": "issuer",
+          "type": "name"
         }
       ],
-      "name": "create"
+      "name": "CurrencyStats"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "symbol",
+          "type": "symbol"
+        },
+        {
+          "name": "ram_payer",
+          "type": "name"
+        }
+      ],
+      "name": "open"
     },
     {
       "base": "",
@@ -74,11 +96,34 @@
       "base": "",
       "fields": [
         {
-          "name": "balance",
+          "name": "issuer",
+          "type": "name"
+        },
+        {
+          "name": "max_supply",
           "type": "asset"
         }
       ],
-      "name": "Account"
+      "name": "create"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "symbol",
+          "type": "symbol"
+        }
+      ],
+      "name": "close"
+    },
+    {
+      "base": "",
+      "fields": [],
+      "name": "TokenContract"
     },
     {
       "base": "",
@@ -102,56 +147,6 @@
       "base": "",
       "fields": [
         {
-          "name": "owner",
-          "type": "name"
-        },
-        {
-          "name": "symbol",
-          "type": "symbol"
-        },
-        {
-          "name": "ram_payer",
-          "type": "name"
-        }
-      ],
-      "name": "open"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "owner",
-          "type": "name"
-        },
-        {
-          "name": "symbol",
-          "type": "symbol"
-        }
-      ],
-      "name": "close"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "supply",
-          "type": "asset"
-        },
-        {
-          "name": "max_supply",
-          "type": "asset"
-        },
-        {
-          "name": "issuer",
-          "type": "name"
-        }
-      ],
-      "name": "CurrencyStats"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
           "name": "quantity",
           "type": "asset"
         },
@@ -164,8 +159,13 @@
     },
     {
       "base": "",
-      "fields": [],
-      "name": "TokenContract"
+      "fields": [
+        {
+          "name": "balance",
+          "type": "asset"
+        }
+      ],
+      "name": "Account"
     }
   ],
   "tables": [

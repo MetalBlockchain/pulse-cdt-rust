@@ -1,3 +1,7 @@
+use core::{cell::RefCell, ops::{Deref, DerefMut}};
+
+use alloc::rc::Rc;
+
 use crate::core::{check, MultiIndex, MultiIndexDefinition, Name, Table};
 
 pub struct SingletonDefinition<T>
@@ -21,7 +25,7 @@ where
     }
 
     #[inline]
-    pub const fn get_instance(&self, code: Name, scope: u64) -> Singleton<T> {
+    pub fn get_instance(&self, code: Name, scope: u64) -> Singleton<T> {
         Singleton::new(self, code, scope)
     }
 }
@@ -39,7 +43,7 @@ where
     T: Table,
 {
     #[inline]
-    pub const fn new(def: &SingletonDefinition<T>, code: Name, scope: u64) -> Self {
+    pub fn new(def: &SingletonDefinition<T>, code: Name, scope: u64) -> Self {
         Self {
             pk_value: def.singleton_name.raw(),
             table: MultiIndexDefinition::new(def.singleton_name).index(code, scope),

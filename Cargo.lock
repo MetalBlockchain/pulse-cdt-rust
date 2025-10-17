@@ -51,6 +51,12 @@ dependencies = [
 
 [[package]]
 name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
+
+[[package]]
+name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
@@ -126,7 +132,7 @@ dependencies = [
 name = "pulse_bytes"
 version = "0.1.0"
 dependencies = [
- "heck",
+ "heck 0.5.0",
  "inventory",
  "proc-macro2",
  "quote",
@@ -164,7 +170,7 @@ version = "0.1.0"
 name = "pulse_proc_macro"
 version = "0.1.0"
 dependencies = [
- "heck",
+ "heck 0.5.0",
  "inventory",
  "lol_alloc",
  "proc-macro2",
@@ -191,6 +197,7 @@ dependencies = [
 name = "pulse_system"
 version = "0.1.0"
 dependencies = [
+ "heck 0.4.1",
  "libm",
  "pulse_cdt",
  "quote",

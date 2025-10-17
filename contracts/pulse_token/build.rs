@@ -1,5 +1,5 @@
 // build.rs
-use serde_json::json;
+use serde_json::{json, Value};
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
@@ -7,9 +7,7 @@ use std::{
     path::PathBuf,
 };
 use syn::{
-    Attribute, Expr, ExprCall, ExprCast, ExprField, ExprLit, ExprMacro, ExprMethodCall, ExprParen,
-    FnArg, ImplItem, ImplItemMethod, Item, ItemConst, ItemFn, ItemImpl, ItemStruct, Lit, Meta,
-    MetaList, MetaNameValue, Pat, PatIdent, PatType, PathArguments, Type, TypePath,
+    Attribute, Expr, ExprCall, ExprCast, ExprField, ExprLit, ExprMacro, ExprMethodCall, ExprParen, FnArg, GenericArgument, ImplItem, ImplItemMethod, Item, ItemConst, ItemFn, ItemImpl, ItemStruct, Lit, Meta, MetaList, MetaNameValue, Pat, PatIdent, PatType, PathArguments, Type, TypePath
 };
 
 fn main() {
@@ -268,6 +266,16 @@ fn main() {
         }
     }
 
+    // Normalize a bit before scanning (optional)
+    let referenced = collect_referenced_types(&struct_map);
+
+    // Inject well-known external structs that are referenced but missing
+    for head in referenced {
+        if !is_builtin_eos_type(&head) && !struct_map.contains_key(&head) {
+            let _ = inject_well_known(&head, &mut struct_map);
+        }
+    }
+
     // -----------------------------------------------------------
     // Emit ABI JSON (pretty)
     // -----------------------------------------------------------
@@ -295,6 +303,78 @@ fn main() {
 }
 
 /* -------------------- helpers -------------------- */
+
+fn is_builtin_eos_type(t: &str) -> bool {
+    // Simple check; extend as needed. Also treat containers as builtins.
+    const PRIMS: &[&str] = &[
+        "string","name","bool","symbol","symbol_code","asset",
+        "varuint32","varint32",
+        "int8","int16","int32","int64","int128",
+        "uint8","uint16","uint32","uint64","uint128",
+        "float32","float64",
+        "time_point","time_point_sec","block_timestamp_type",
+        "checksum160","checksum256","checksum512","public_key","signature",
+        "permission_level","bytes",
+    ];
+    if PRIMS.contains(&t) { return true; }
+    // containers like vector<T>, optional<T>, map<K,V>, pair<A,B>
+    t.starts_with("vector<") || t.starts_with("optional<") || t.starts_with("map<") || t.starts_with("pair<")
+}
+
+fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -> bool {
+    match name {
+        // Canonical EOSIO authority family
+        "key_weight" if !struct_map.contains_key("key_weight") => {
+            struct_map.insert("key_weight".into(), vec![
+                json!({"name":"key",    "type":"public_key"}),
+                json!({"name":"weight", "type":"uint16"}),
+            ]);
+            true
+        }
+        "permission_level_weight" if !struct_map.contains_key("permission_level_weight") => {
+            struct_map.insert("permission_level_weight".into(), vec![
+                json!({"name":"permission","type":"permission_level"}),
+                json!({"name":"weight",    "type":"uint16"}),
+            ]);
+            true
+        }
+        "wait_weight" if !struct_map.contains_key("wait_weight") => {
+            struct_map.insert("wait_weight".into(), vec![
+                json!({"name":"wait_sec","type":"uint32"}),
+                json!({"name":"weight",  "type":"uint16"}),
+            ]);
+            true
+        }
+        "authority" if !struct_map.contains_key("authority") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("key_weight", struct_map);
+            let _ = inject_well_known("permission_level_weight", struct_map);
+            let _ = inject_well_known("wait_weight", struct_map);
+            struct_map.insert("authority".into(), vec![
+                json!({"name":"threshold","type":"uint32"}),
+                json!({"name":"keys",     "type":"vector<key_weight>"}),
+                json!({"name":"accounts", "type":"vector<permission_level_weight>"}),
+                json!({"name":"waits",    "type":"vector<wait_weight>"}),
+            ]);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn collect_referenced_types(struct_map: &HashMap<String, Vec<Value>>) -> Vec<String> {
+    let mut out = std::collections::BTreeSet::new();
+    for fields in struct_map.values() {
+        for f in fields {
+            if let Some(ts) = f.get("type").and_then(|v| v.as_str()) {
+                // peel container shells once to find the head
+                let head = ts.split('<').next().unwrap_or(ts).trim();
+                out.insert(head.to_string());
+            }
+        }
+    }
+    out.into_iter().collect()
+}
 
 fn has_action_attr(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|a| path_is(a, &["action"]))
@@ -426,27 +506,152 @@ fn strip_refs<'a>(ty: &'a Type) -> &'a Type {
 
 fn rust_type_to_eos_type(ty: &Type) -> String {
     match ty {
+        // e.g. String, Vec<T>, Option<T>, HashMap<K,V>, my::types::Id, etc.
         Type::Path(p) => {
-            let name = p.path.segments.first().unwrap().ident.to_string();
+            let seg = p.path.segments.last().expect("at least one segment");
+            let name = seg.ident.to_string();
+
+            // Helper: pull generic type arguments
+            let mut gen_types = || -> Vec<&Type> {
+                if let PathArguments::AngleBracketed(ab) = &seg.arguments {
+                    ab.args
+                        .iter()
+                        .filter_map(|a| match a {
+                            GenericArgument::Type(t) => Some(t),
+                            _ => None,
+                        })
+                        .collect()
+                } else {
+                    Vec::new()
+                }
+            };
+
             match name.as_str() {
+                // Builtins
                 "String" => "string".into(),
-                "Vec" => "bytes".into(),
-                "u64" => "uint64".into(),
-                "u32" => "uint32".into(),
-                "u16" => "uint16".into(),
-                "u8" => "uint8".into(),
-                "i64" => "int64".into(),
-                "i32" => "int32".into(),
+                "str"    => "string".into(),
+
+                "u128" => "uint128".into(),
+                "u64"  => "uint64".into(),
+                "u32"  => "uint32".into(),
+                "u16"  => "uint16".into(),
+                "u8"   => "uint8".into(),
+                "i128" => "int128".into(),
+                "i64"  => "int64".into(),
+                "i32"  => "int32".into(),
+                "i16"  => "int16".into(),
+                "i8"   => "int8".into(),
+                "f32"  => "float32".into(),
+                "f64"  => "float64".into(),
                 "bool" => "bool".into(),
-                // EOSIO-ish domain types if you use them:
-                "Name" => "name".into(),
-                "Asset" => "asset".into(),
-                "Symbol" => "symbol".into(),
-                "SymbolCode" => "symbol_code".into(),
-                other => other.to_lowercase(),
+
+                // Containers
+                "Vec" => {
+                    let args = gen_types();
+                    if let Some(inner) = args.first() {
+                        let inner_ty = rust_type_to_eos_type(inner);
+                        if inner_ty == "uint8" || inner_ty == "bytes" {
+                            "bytes".into()               // Vec<u8> or Vec<Bytes> → bytes
+                        } else {
+                            format!("vector<{inner_ty}>")
+                        }
+                    } else {
+                        "vector<unknown>".into()
+                    }
+                }
+                "Option" | "Optional" => {
+                    let args = gen_types();
+                    if let Some(inner) = args.first() {
+                        let inner_ty = rust_type_to_eos_type(inner);
+                        format!("optional<{inner_ty}>")
+                    } else {
+                        "optional<unknown>".into()
+                    }
+                }
+                "HashMap" | "BTreeMap" | "Map" => {
+                    let args = gen_types();
+                    if args.len() == 2 {
+                        let k = rust_type_to_eos_type(args[0]);
+                        let v = rust_type_to_eos_type(args[1]);
+                        format!("map<{k},{v}>")        // Requires abieos with map support
+                    } else {
+                        "map<unknown,unknown>".into()
+                    }
+                }
+
+                // EOSIO-ish domain types
+                "Name"         => "name".into(),
+                "Asset"        => "asset".into(),
+                "Symbol"       => "symbol".into(),
+                "SymbolCode"   => "symbol_code".into(),
+                "TimePoint"    => "time_point".into(),
+                "TimePointSec" => "time_point_sec".into(),
+                "BlockTimestamp" | "BlockTimestampType" => "block_timestamp_type".into(),
+                "Checksum256"  => "checksum256".into(),
+                "Checksum160"  => "checksum160".into(),
+                "Checksum512"  => "checksum512".into(),
+                "PublicKey"    => "public_key".into(),
+                "Signature"    => "signature".into(),
+                "VarUint32"    => "varuint32".into(),
+                "VarInt32"     => "varint32".into(),
+
+                // Project-specific aliases
+                "Id"    => "checksum256".into(),   // block id type in your codebase
+                "Bytes" => "bytes".into(),
+
+                // Well known types
+                "PermissionLevel" => "permission_level".into(),
+                "KeyWeight"       => "key_weight".into(),
+                "PermissionLevelWeight" => "permission_level_weight".into(),
+                "WaitWeight"      => "wait_weight".into(),
+                "Authority"       => "authority".into(),
+
+                // Default: KEEP THE NAME (don't lowercase!) so custom structs match exactly.
+                other => other.to_string(),
             }
         }
-        Type::Array(_) => "bytes".into(),
+
+        // &[T] or &str
+        Type::Reference(r) => {
+            let inner = rust_type_to_eos_type(&r.elem);
+            if inner == "uint8" || inner == "bytes" || inner == "string" {
+                inner
+            } else {
+                format!("vector<{inner}>")
+            }
+        }
+
+        // [T] slice
+        Type::Slice(s) => {
+            let inner = rust_type_to_eos_type(&s.elem);
+            if inner == "uint8" || inner == "bytes" {
+                "bytes".into()
+            } else {
+                format!("vector<{inner}>")
+            }
+        }
+
+        // [T; N] array — no fixed-size arrays in ABI, treat like vector / bytes
+        Type::Array(a) => {
+            let inner = rust_type_to_eos_type(&a.elem);
+            if inner == "uint8" || inner == "bytes" {
+                "bytes".into()
+            } else {
+                format!("vector<{inner}>")
+            }
+        }
+
+        // (A, B) → pair<A,B> if length = 2; otherwise unknown (no tuple in ABI)
+        Type::Tuple(t) => {
+            if t.elems.len() == 2 {
+                let a = rust_type_to_eos_type(&t.elems[0]);
+                let b = rust_type_to_eos_type(&t.elems[1]);
+                format!("pair<{a},{b}>")
+            } else {
+                "unknown".into()
+            }
+        }
+
         _ => "unknown".into(),
     }
 }

@@ -17,6 +17,14 @@ pub struct Asset {
 
 impl Asset {
     #[inline(always)]
+    pub fn new<T: Into<Symbol>>(amount: i64, symbol: T) -> Self {
+        Self {
+            amount,
+            symbol: symbol.into(),
+        }
+    }
+
+    #[inline(always)]
     pub fn zero<T: Into<Symbol>>(symbol: T) -> Self {
         Self {
             amount: 0,

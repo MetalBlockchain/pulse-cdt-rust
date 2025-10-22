@@ -3,7 +3,7 @@ use pulse_proc_macro::{NumBytes, Read, Write};
 
 use super::symbol_code::SymbolCode;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Read, NumBytes, Write)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Read, NumBytes, Write, Default)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct Symbol(u64);
 

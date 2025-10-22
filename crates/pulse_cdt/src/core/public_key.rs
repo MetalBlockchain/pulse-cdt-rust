@@ -2,7 +2,7 @@ use pulse_serialization::{NumBytes, Read, Write};
 
 use crate::core::{check, FixedBytes};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Read, Write, NumBytes)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash, Read, Write, NumBytes, Default)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct PublicKey(pub FixedBytes<33>);
 

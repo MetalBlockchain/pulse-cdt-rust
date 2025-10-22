@@ -1,4 +1,4 @@
-use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use pulse_proc_macro::{NumBytes, Read, Write};
 
@@ -6,7 +6,7 @@ use super::{check::check, symbol::Symbol};
 
 pub const MAX_ASSET_AMOUNT: i64 = (1i64 << 62) - 1;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, NumBytes, Read, Write)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, NumBytes, Read, Write, Default)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct Asset {
     /// The amount of the asset
@@ -172,5 +172,28 @@ impl DivAssign for Asset {
                 check(false, "signed division overflow");
             }
         }
+    }
+}
+
+impl Neg for Asset {
+    type Output = Self;
+
+    #[inline(always)]
+    fn neg(self) -> Self::Output {
+        Self {
+            amount: -self.amount,
+            symbol: self.symbol,
+        }
+    }
+}
+
+impl PartialOrd for Asset {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        if self.symbol != other.symbol {
+            return None;
+        }
+
+        self.amount.partial_cmp(&other.amount)
     }
 }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+hashbrown = { version = "0.14", default-features = false }
 pulse_serialization = { workspace = true }
 pulse_proc_macro = { workspace = true }
 pulse_name = { workspace = true }

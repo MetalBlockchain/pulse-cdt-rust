@@ -6,30 +6,30 @@ use crate::core::{Name, PublicKey};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Read, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct Authority {
-    threshold: u32,
-    keys: Vec<KeyWeight>,
-    accounts: Vec<PermissionLevelWeight>,
+    pub threshold: u32,
+    pub keys: Vec<KeyWeight>,
+    pub accounts: Vec<PermissionLevelWeight>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Read, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct KeyWeight {
-    key: PublicKey,
-    weight: u16,
+    pub key: PublicKey,
+    pub weight: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Read, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct PermissionLevelWeight {
-    permission: PermissionLevel,
-    weight: u16,
+    pub permission: PermissionLevel,
+    pub weight: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Read, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct PermissionLevel {
-    actor: Name,
-    permission: Name,
+    pub actor: Name,
+    pub permission: Name,
 }
 
 impl PermissionLevel {

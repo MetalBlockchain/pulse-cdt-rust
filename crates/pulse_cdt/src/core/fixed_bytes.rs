@@ -1,6 +1,6 @@
 use pulse_serialization::{NumBytes, Read, ReadError, Write, WriteError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedBytes<const N: usize>(pub [u8; N]);
 
 impl<const N: usize> FixedBytes<N> {

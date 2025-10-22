@@ -1,4 +1,4 @@
-use core::cmp::PartialEq;
+use core::{cmp::PartialEq, ops::Not};
 
 use alloc::string::{String, ToString};
 use pulse_name::{name_to_bytes, NAME_MAX_LEN};
@@ -98,5 +98,14 @@ impl PartialEq<u64> for Name {
     #[inline(always)]
     fn eq(&self, other: &u64) -> bool {
         &self.0 == other
+    }
+}
+
+impl Not for Name {
+    type Output = bool;
+
+    #[inline(always)]
+    fn not(self) -> Self::Output {
+        self.0 == 0
     }
 }

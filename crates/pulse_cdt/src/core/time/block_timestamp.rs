@@ -12,7 +12,7 @@ pub struct BlockTimestamp {
 
 impl BlockTimestamp {
     pub const BLOCK_INTERVAL_MS: i32 = 500;
-    pub const BLOCK_TIMESTAMP_EPOCH_MS: i64 = 946_684_800_000; // 2000-01-01T00:00:00Z
+    pub const BLOCK_TIMESTAMP_EPOCH: i64 = 946_684_800_000; // 2000-01-01T00:00:00Z
 
     #[inline]
     pub const fn new(slot: u32) -> Self {
@@ -46,7 +46,7 @@ impl From<BlockTimestamp> for TimePoint {
     #[inline]
     fn from(bt: BlockTimestamp) -> Self {
         let msec = (bt.slot as i64) * (BlockTimestamp::BLOCK_INTERVAL_MS as i64)
-            + BlockTimestamp::BLOCK_TIMESTAMP_EPOCH_MS;
+            + BlockTimestamp::BLOCK_TIMESTAMP_EPOCH;
         TimePoint::new(milliseconds(msec))
     }
 }
@@ -56,7 +56,7 @@ impl From<TimePoint> for BlockTimestamp {
     fn from(t: TimePoint) -> Self {
         let micro = t.time_since_epoch().count();
         let msec = micro / 1_000;
-        let slot = ((msec - BlockTimestamp::BLOCK_TIMESTAMP_EPOCH_MS)
+        let slot = ((msec - BlockTimestamp::BLOCK_TIMESTAMP_EPOCH)
             / (BlockTimestamp::BLOCK_INTERVAL_MS as i64)) as u32;
         BlockTimestamp { slot }
     }
@@ -66,7 +66,7 @@ impl From<TimePointSec> for BlockTimestamp {
     #[inline]
     fn from(t: TimePointSec) -> Self {
         let sec = t.sec_since_epoch() as i64;
-        let slot = ((sec * 1_000 - BlockTimestamp::BLOCK_TIMESTAMP_EPOCH_MS)
+        let slot = ((sec * 1_000 - BlockTimestamp::BLOCK_TIMESTAMP_EPOCH)
             / (BlockTimestamp::BLOCK_INTERVAL_MS as i64)) as u32;
         BlockTimestamp { slot }
     }

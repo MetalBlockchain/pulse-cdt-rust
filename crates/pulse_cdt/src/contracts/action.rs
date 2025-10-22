@@ -95,6 +95,15 @@ pub struct Action {
 }
 
 impl Action {
+    pub fn new(authorization: Vec<PermissionLevel>, account: Name, name: Name, data: Vec<u8>) -> Self {
+        return Self {
+            account,
+            name,
+            authorization,
+            data
+        }
+    }
+    
     pub fn send(&self) {
         let serialized = self.pack().expect("failed to serialize action");
         send_inline(&serialized);

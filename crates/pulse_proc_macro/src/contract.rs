@@ -245,11 +245,18 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
                 _ => unreachable!(),
             };
 
+            let bind_pat = if args_len == 1 {
+                let a0 = &bind_idents[0];
+                quote! { ( #a0 , ) }   // <-- note the trailing comma
+            } else {
+                quote! { ( #(#bind_idents),* ) }
+            };
+
             quote! {
                 else if code == receiver && action == pulse_cdt::name_raw!(#action_name_str) {
                     type __Args = #tuple_ty;
                     let #tmp_ident: __Args = #decoder_path::<__Args>();
-                    let ( #(#bind_idents),* ) = #tmp_ident;
+                    let #bind_pat = #tmp_ident;
                     #call_with_args;
                 }
             }

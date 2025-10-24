@@ -4,8 +4,8 @@ use serde_json::{Value, json};
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
-    io::{BufWriter, Write},
-    path::PathBuf,
+    io::{self, BufWriter, Write},
+    path::{Path, PathBuf},
 };
 use syn::{
     Attribute, Expr, ExprCall, ExprCast, ExprField, ExprLit, ExprMacro, ExprMethodCall, ExprParen,
@@ -15,17 +15,54 @@ use syn::{
 };
 
 fn main() {
-    println!("cargo:rerun-if-changed=src/lib.rs");
-
+    // --- watch all .rs files under src ---
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let src_path = PathBuf::from(&manifest_dir).join("src/lib.rs");
+    let src_dir = PathBuf::from(&manifest_dir).join("src");
 
-    let code = fs::read_to_string(&src_path).expect("Failed to read src/lib.rs");
-    let syntax = syn::parse_file(&code).expect("Failed to parse src/lib.rs");
+    fn gather_rs_files(dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                gather_rs_files(&path, out)?;
+            } else if path.extension().map_or(false, |e| e == "rs") {
+                out.push(path);
+            }
+        }
+        Ok(())
+    }
+
+    let mut rs_files = Vec::new();
+    gather_rs_files(&src_dir, &mut rs_files).expect("scan src");
+
+    // Make Cargo rebuild when any file changes
+    for f in &rs_files {
+        println!("cargo:rerun-if-changed={}", f.display());
+    }
+
+    // --- parse & merge all files into one syn::File-like structure ---
+    let mut all_items = Vec::new();
+    for f in &rs_files {
+        let code =
+            fs::read_to_string(f).unwrap_or_else(|e| panic!("Failed to read {}: {e}", f.display()));
+        let parsed = syn::parse_file(&code)
+            .unwrap_or_else(|e| panic!("Failed to parse {}: {e}", f.display()));
+        all_items.extend(parsed.items);
+    }
+
+    // Synthetic "file" that contains the merged items from all src files
+    let syntax = syn::File {
+        shebang: None,
+        attrs: Vec::new(),
+        items: all_items,
+    };
 
     let mut actions = vec![];
     let mut tables = vec![];
     let mut struct_map: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
+    let mut type_map: HashMap<String, serde_json::Value> = HashMap::new();
+    let mut variant_map: HashMap<String, serde_json::Value> = HashMap::new();
+    let mut reciardian_contracts: HashMap<String, serde_json::Value> = HashMap::new();
     let mut seen_table_names: HashSet<String> = HashSet::new();
 
     // -----------------------------------------------------------
@@ -57,7 +94,7 @@ fn main() {
             for ga in &ab.args {
                 if let syn::GenericArgument::Type(Type::Path(tp)) = ga {
                     if let Some(last) = tp.path.segments.last() {
-                        return Some((kind, last.ident.to_string().to_snake_case()));
+                        return Some((kind, last.ident.to_string()));
                     }
                 }
             }
@@ -140,7 +177,7 @@ fn main() {
             ..
         }) = item
         {
-            let struct_name = ident.to_string().to_snake_case();
+            let struct_name = ident.to_string();
             let mut field_entries = vec![];
 
             for field in fields.iter() {
@@ -167,7 +204,7 @@ fn main() {
                 } else if let Some(n) = cfg.name {
                     n
                 } else {
-                    struct_name.to_lowercase()
+                    ident.to_string().to_lowercase()
                 };
 
                 if seen_table_names.insert(table_name.clone()) {
@@ -278,7 +315,7 @@ fn main() {
     // Inject well-known external structs that are referenced but missing
     for head in referenced {
         if !is_builtin_eos_type(&head) && !struct_map.contains_key(&head) {
-            let _ = inject_well_known(&head, &mut struct_map);
+            let _ = inject_well_known(&head, &mut struct_map, &mut type_map, &mut variant_map);
         }
     }
 
@@ -288,19 +325,31 @@ fn main() {
     // -----------------------------------------------------------
     // Emit ABI JSON (pretty)
     // -----------------------------------------------------------
+    let types_json: Vec<_> = type_map.iter().map(|(name, value)| value).collect();
     let structs_json: Vec<_> = struct_map
         .iter()
         .map(|(name, fields)| json!({ "name": name, "base": "", "fields": fields }))
         .collect();
+    let variants_json: Vec<_> = variant_map.iter().map(|(name, value)| value).collect();
 
     let abi_json = json!({
+        "____comment": "This file was generated. DO NOT EDIT ",
         "version": "eosio::abi/1.1",
-        "types": [],
+        "types": types_json,
         "structs": structs_json,
         "actions": actions,
         "tables": tables,
-        "ricardian_clauses": [],
-        "error_messages": [],
+        "ricardian_clauses": [
+            {
+                "id": "UserAgreement",
+                "body": "User agreement for the chain can go here."
+            },
+            {
+                "id": "BlockProducerAgreement",
+                "body": "I, {{producer}}, hereby nominate myself for consideration as an elected block producer.\n\nIf {{producer}} is selected to produce blocks by the system contract, I will sign blocks with my registered block signing keys and I hereby attest that I will keep these keys secret and secure.\n\nIf {{producer}} is unable to perform obligations under this contract I will resign my position using the unregprod action.\n\nI acknowledge that a block is 'objectively valid' if it conforms to the deterministic blockchain rules in force at the time of its creation, and is 'objectively invalid' if it fails to conform to those rules.\n\n{{producer}} hereby agrees to only use my registered block signing keys to sign messages under the following scenarios:\n\n* proposing an objectively valid block at the time appointed by the block scheduling algorithm;\n* pre-confirming a block produced by another producer in the schedule when I find said block objectively valid;\n* and, confirming a block for which {{producer}} has received pre-confirmation messages from more than two-thirds of the active block producers.\n\nI hereby accept liability for any and all provable damages that result from my:\n\n* signing two different block proposals with the same timestamp;\n* signing two different block proposals with the same block number;\n* signing any block proposal which builds off of an objectively invalid block;\n* signing a pre-confirmation for an objectively invalid block;\n* or, signing a confirmation for a block for which I do not possess pre-confirmation messages from more than two-thirds of the active block producers.\n\nI hereby agree that double-signing for a timestamp or block number in concert with two or more other block producers shall automatically be deemed malicious and cause {{producer}} to be subject to:\n\n* a fine equal to the past year of compensation received,\n* immediate disqualification from being a producer,\n* and/or other damages.\n\nAn exception may be made if {{producer}} can demonstrate that the double-signing occurred due to a bug in the reference software; the burden of proof is on {{producer}}.\n\nI hereby agree not to interfere with the producer election process. I agree to process all producer election transactions that occur in blocks I create, to sign all objectively valid blocks I create that contain election transactions, and to sign all pre-confirmations and confirmations necessary to facilitate transfer of control to the next set of producers as determined by the system contract.\n\nI hereby acknowledge that more than two-thirds of the active block producers may vote to disqualify {{producer}} in the event {{producer}} is unable to produce blocks or is unable to be reached, according to criteria agreed to among block producers.\n\nIf {{producer}} qualifies for and chooses to collect compensation due to votes received, {{producer}} will provide a public endpoint allowing at least 100 peers to maintain synchronization with the blockchain and/or submit transactions to be included. {{producer}} shall maintain at least one validating node with full state and signature checking and shall report any objectively invalid blocks produced by the active block producers. Reporting shall be via a method to be agreed to among block producers, said method and reports to be made public.\n\nThe community agrees to allow {{producer}} to authenticate peers as necessary to prevent abuse and denial of service attacks; however, {{producer}} agrees not to discriminate against non-abusive peers.\n\nI agree to process transactions on a FIFO (first in, first out) best-effort basis and to honestly bill transactions for measured execution time.\n\nI {{producer}} agree not to manipulate the contents of blocks in order to derive profit from: the order in which transactions are included, or the hash of the block that is produced.\n\nI, {{producer}}, hereby agree to disclose and attest under penalty of perjury all ultimate beneficial owners of my business entity who own more than 10% and all direct shareholders.\n\nI, {{producer}}, hereby agree to cooperate with other block producers to carry out our respective and mutual obligations under this agreement, including but not limited to maintaining network stability and a valid blockchain.\n\nI, {{producer}}, agree to maintain a website hosted at {{url}} which contains up-to-date information on all disclosures required by this contract.\n\nI, {{producer}}, agree to set the location value of {{location}} such that {{producer}} is scheduled with minimal latency between my previous and next peer.\n\nI, {{producer}}, agree to maintain time synchronization within 10 ms of global atomic clock time, using a method agreed to among block producers.\n\nI, {{producer}}, agree not to produce blocks before my scheduled time unless I have received all blocks produced by the prior block producer.\n\nI, {{producer}}, agree not to publish blocks with timestamps more than 500ms in the future unless the prior block is more than 75% full by either NET or CPU bandwidth metrics.\n\nI, {{producer}}, agree not to set the RAM supply to more RAM than my nodes contain and to resign if I am unable to provide the RAM approved by more than two-thirds of active block producers, as shown in the system parameters."
+            }
+        ],
+        "variants": variants_json,
     });
 
     let out_path = PathBuf::from("./abi.json");
@@ -380,7 +429,12 @@ fn is_builtin_eos_type(t: &str) -> bool {
     PRIMS.contains(&core)
 }
 
-fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -> bool {
+fn inject_well_known(
+    name: &str,
+    struct_map: &mut HashMap<String, Vec<Value>>,
+    type_map: &mut HashMap<String, Value>,
+    variant_map: &mut HashMap<String, Value>,
+) -> bool {
     match name {
         // Canonical EOSIO authority family
         "key_weight" if !struct_map.contains_key("key_weight") => {
@@ -393,7 +447,19 @@ fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -
             );
             true
         }
+        "permission_level" if !struct_map.contains_key("permission_level") => {
+            struct_map.insert(
+                "permission_level".into(),
+                vec![
+                    json!({"name":"actor",      "type":"name"}),
+                    json!({"name":"permission", "type":"name"}),
+                ],
+            );
+            true
+        }
         "permission_level_weight" if !struct_map.contains_key("permission_level_weight") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("permission_level", struct_map, type_map, variant_map);
             struct_map.insert(
                 "permission_level_weight".into(),
                 vec![
@@ -415,9 +481,9 @@ fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -
         }
         "authority" if !struct_map.contains_key("authority") => {
             // Ensure dependencies exist too
-            let _ = inject_well_known("key_weight", struct_map);
-            let _ = inject_well_known("permission_level_weight", struct_map);
-            let _ = inject_well_known("wait_weight", struct_map);
+            let _ = inject_well_known("key_weight", struct_map, type_map, variant_map);
+            let _ = inject_well_known("permission_level_weight", struct_map, type_map, variant_map);
+            let _ = inject_well_known("wait_weight", struct_map, type_map, variant_map);
             struct_map.insert(
                 "authority".into(),
                 vec![
@@ -425,6 +491,72 @@ fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -
                     json!({"name":"keys",     "type":"key_weight[]"}),
                     json!({"name":"accounts", "type":"permission_level_weight[]"}),
                     json!({"name":"waits",    "type":"wait_weight[]"}),
+                ],
+            );
+            true
+        }
+        "block_signing_authority" if !struct_map.contains_key("block_signing_authority") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("key_weight", struct_map, type_map, variant_map);
+            struct_map.insert(
+                "block_signing_authority_v0".into(),
+                vec![
+                    json!({"name":"threshold","type":"uint32"}),
+                    json!({"name":"keys",     "type":"key_weight[]"}),
+                ],
+            );
+            variant_map.insert(
+                "variant_block_signing_authority_v0".into(),
+                json!({
+                    "name": "variant_block_signing_authority_v0",
+                    "types": ["block_signing_authority_v0"]
+                }),
+            );
+            type_map.insert(
+                "variant_block_signing_authority_v0".into(),
+                json!({
+                    "new_type_name": "block_signing_authority",
+                    "type": "variant_block_signing_authority_v0"
+                }),
+            );
+            true
+        }
+        "producer_key" if !struct_map.contains_key("producer_key") => {
+            struct_map.insert(
+                "producer_key".into(),
+                vec![
+                    json!({"name":"producer_name","type":"name"}),
+                    json!({"name":"block_signing_key","type":"public_key"}),
+                ],
+            );
+            true
+        }
+        "producer_schedule" if !struct_map.contains_key("producer_schedule") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("producer_key", struct_map, type_map, variant_map);
+            struct_map.insert(
+                "producer_schedule".into(),
+                vec![
+                    json!({"name":"version","type":"uint32"}),
+                    json!({"name":"producers","type":"producer_key[]"}),
+                ],
+            );
+            true
+        }
+        "block_header" if !struct_map.contains_key("block_header") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("producer_schedule", struct_map, type_map, variant_map);
+            struct_map.insert(
+                "block_header".into(),
+                vec![
+                    json!({"name":"timestamp","type":"uint32"}),
+                    json!({"name":"producer","type":"name"}),
+                    json!({"name":"confirmed","type":"uint16"}),
+                    json!({"name":"previous","type":"checksum256"}),
+                    json!({"name":"transaction_mroot","type":"checksum256"}),
+                    json!({"name":"action_mroot","type":"checksum256"}),
+                    json!({"name":"schedule_version","type":"uint32"}),
+                    json!({"name":"new_producers","type":"producer_schedule?"}),
                 ],
             );
             true
@@ -674,11 +806,13 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
                 "Bytes" => "bytes".into(),
 
                 // Well known types
+                "Authority" => "authority".into(),
+                "BlockHeader" => "block_header".into(),
                 "PermissionLevel" => "permission_level".into(),
                 "KeyWeight" => "key_weight".into(),
                 "PermissionLevelWeight" => "permission_level_weight".into(),
                 "WaitWeight" => "wait_weight".into(),
-                "Authority" => "authority".into(),
+                "BlockSigningAuthority" => "block_signing_authority".into(),
 
                 // Default: KEEP THE NAME (don't lowercase!) so custom structs match exactly.
                 other => other.to_string(),
@@ -940,4 +1074,34 @@ fn rewrite_generics_to_v1_1(struct_map: &mut HashMap<String, Vec<Value>>) {
     for (name, fields) in to_add {
         struct_map.insert(name, fields);
     }
+}
+
+fn validate_name(name: &str) -> Result<(), &'static str> {
+    let bytes = name.as_bytes();
+
+    // EOS name rules:
+    // - 1 to 12 characters
+    // - lowercase a-z, digits 1-5, and dot (.)
+    // - if 13 chars (legacy), only '.' allowed at last position
+    // - cannot start or end with '.'
+    if bytes.is_empty() || bytes.len() > 13 {
+        return Err("name must be 1–13 characters long");
+    }
+
+    if bytes[0] == b'.' || bytes[bytes.len() - 1] == b'.' {
+        return Err("name cannot start or end with '.'");
+    }
+
+    for (i, &c) in bytes.iter().enumerate() {
+        let valid = (b'a'..=b'z').contains(&c) || (b'1'..=b'5').contains(&c) || c == b'.';
+        if !valid {
+            return Err("invalid character in name");
+        }
+        // last char rule for 13-char names
+        if bytes.len() == 13 && i == 12 && c != b'.' {
+            return Err("13th character must be '.'");
+        }
+    }
+
+    Ok(())
 }

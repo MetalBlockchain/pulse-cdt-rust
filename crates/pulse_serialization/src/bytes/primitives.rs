@@ -145,6 +145,13 @@ impl<K: Write + NumBytes, V: Write + NumBytes> NumBytes for BTreeMap<K, V> {
     }
 }
 
+impl<T1: NumBytes> NumBytes for (T1,) {
+    #[inline(always)]
+    fn num_bytes(&self) -> usize {
+        self.0.num_bytes()
+    }
+}
+
 impl<T1: NumBytes, T2: NumBytes> NumBytes for (T1, T2) {
     #[inline(always)]
     fn num_bytes(&self) -> usize {
@@ -163,6 +170,13 @@ impl<T1: NumBytes, T2: NumBytes, T3: NumBytes, T4: NumBytes> NumBytes for (T1, T
     #[inline(always)]
     fn num_bytes(&self) -> usize {
         self.0.num_bytes() + self.1.num_bytes() + self.2.num_bytes() + self.3.num_bytes()
+    }
+}
+
+impl<T1: NumBytes, T2: NumBytes, T3: NumBytes, T4: NumBytes, T5: NumBytes> NumBytes for (T1, T2, T3, T4, T5) {
+    #[inline(always)]
+    fn num_bytes(&self) -> usize {
+        self.0.num_bytes() + self.1.num_bytes() + self.2.num_bytes() + self.3.num_bytes() + self.4.num_bytes()
     }
 }
 
@@ -365,6 +379,17 @@ impl<K: Read + Write + NumBytes + Ord, V: Read + Write + NumBytes> Read for BTre
     }
 }
 
+impl<T1> Read for (T1,)
+where
+    T1: Read,
+{
+    #[inline(always)]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        let first = T1::read(bytes, pos)?;
+        Ok((first,))
+    }
+}
+
 impl<T1, T2> Read for (T1, T2)
 where
     T1: Read,
@@ -407,6 +432,25 @@ where
         let third = T3::read(bytes, pos)?;
         let fourth = T4::read(bytes, pos)?;
         Ok((first, second, third, fourth))
+    }
+}
+
+impl<T1, T2, T3, T4, T5> Read for (T1, T2, T3, T4, T5)
+where
+    T1: Read,
+    T2: Read,
+    T3: Read,
+    T4: Read,
+    T5: Read
+{
+    #[inline(always)]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        let first = T1::read(bytes, pos)?;
+        let second = T2::read(bytes, pos)?;
+        let third = T3::read(bytes, pos)?;
+        let fourth = T4::read(bytes, pos)?;
+        let fifth = T5::read(bytes, pos)?;
+        Ok((first, second, third, fourth, fifth))
     }
 }
 
@@ -597,6 +641,14 @@ impl<K: Write + NumBytes, V: Write + NumBytes> Write for BTreeMap<K, V> {
     }
 }
 
+impl<T1: Write> Write for (T1,) {
+    #[inline(always)]
+    fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
+        self.0.write(bytes, pos)?;
+        Ok(())
+    }
+}
+
 impl<T1: Write, T2: Write> Write for (T1, T2) {
     #[inline(always)]
     fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
@@ -623,6 +675,18 @@ impl<T1: Write, T2: Write, T3: Write, T4: Write> Write for (T1, T2, T3, T4) {
         self.1.write(bytes, pos)?;
         self.2.write(bytes, pos)?;
         self.3.write(bytes, pos)?;
+        Ok(())
+    }
+}
+
+impl<T1: Write, T2: Write, T3: Write, T4: Write, T5: Write> Write for (T1, T2, T3, T4, T5) {
+    #[inline(always)]
+    fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
+        self.0.write(bytes, pos)?;
+        self.1.write(bytes, pos)?;
+        self.2.write(bytes, pos)?;
+        self.3.write(bytes, pos)?;
+        self.4.write(bytes, pos)?;
         Ok(())
     }
 }

@@ -247,7 +247,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
 
             let bind_pat = if args_len == 1 {
                 let a0 = &bind_idents[0];
-                quote! { ( #a0 , ) }   // <-- note the trailing comma
+                quote! { ( #a0 , ) } // <-- note the trailing comma
             } else {
                 quote! { ( #(#bind_idents),* ) }
             };

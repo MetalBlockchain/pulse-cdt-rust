@@ -1,7 +1,7 @@
 use core::str;
 
 use alloc::{
-    collections::{btree_map::BTreeMap, vec_deque::VecDeque},
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet, vec_deque::VecDeque},
     string::{String, ToString},
     vec::Vec,
 };
@@ -145,6 +145,17 @@ impl<K: Write + NumBytes, V: Write + NumBytes> NumBytes for BTreeMap<K, V> {
     }
 }
 
+impl<V: Write + NumBytes> NumBytes for BTreeSet<V> {
+    #[inline(always)]
+    fn num_bytes(&self) -> usize {
+        let mut count = self.len().num_bytes();
+        for value in self.iter() {
+            count += value.num_bytes();
+        }
+        count
+    }
+}
+
 impl<T1: NumBytes> NumBytes for (T1,) {
     #[inline(always)]
     fn num_bytes(&self) -> usize {
@@ -173,10 +184,16 @@ impl<T1: NumBytes, T2: NumBytes, T3: NumBytes, T4: NumBytes> NumBytes for (T1, T
     }
 }
 
-impl<T1: NumBytes, T2: NumBytes, T3: NumBytes, T4: NumBytes, T5: NumBytes> NumBytes for (T1, T2, T3, T4, T5) {
+impl<T1: NumBytes, T2: NumBytes, T3: NumBytes, T4: NumBytes, T5: NumBytes> NumBytes
+    for (T1, T2, T3, T4, T5)
+{
     #[inline(always)]
     fn num_bytes(&self) -> usize {
-        self.0.num_bytes() + self.1.num_bytes() + self.2.num_bytes() + self.3.num_bytes() + self.4.num_bytes()
+        self.0.num_bytes()
+            + self.1.num_bytes()
+            + self.2.num_bytes()
+            + self.3.num_bytes()
+            + self.4.num_bytes()
     }
 }
 
@@ -379,6 +396,24 @@ impl<K: Read + Write + NumBytes + Ord, V: Read + Write + NumBytes> Read for BTre
     }
 }
 
+impl<V: Read + Write + NumBytes + Ord> Read for BTreeSet<V> {
+    #[inline(always)]
+    fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+        let len = usize::read(bytes, pos)?;
+
+        if *pos + len > bytes.len() {
+            return Err(ReadError::NotEnoughBytes);
+        }
+
+        let mut set = BTreeSet::new();
+        for _ in 0..len {
+            let value = V::read(bytes, pos)?;
+            set.insert(value);
+        }
+        Ok(set)
+    }
+}
+
 impl<T1> Read for (T1,)
 where
     T1: Read,
@@ -441,7 +476,7 @@ where
     T2: Read,
     T3: Read,
     T4: Read,
-    T5: Read
+    T5: Read,
 {
     #[inline(always)]
     fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
@@ -635,6 +670,17 @@ impl<K: Write + NumBytes, V: Write + NumBytes> Write for BTreeMap<K, V> {
         self.len().write(bytes, pos)?;
         for (key, value) in self.iter() {
             key.write(bytes, pos)?;
+            value.write(bytes, pos)?;
+        }
+        Ok(())
+    }
+}
+
+impl<V: Write + NumBytes> Write for BTreeSet<V> {
+    #[inline(always)]
+    fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
+        self.len().write(bytes, pos)?;
+        for value in self.iter() {
             value.write(bytes, pos)?;
         }
         Ok(())

@@ -1,4 +1,7 @@
-use core::{cell::RefCell, ops::{Deref, DerefMut}};
+use core::{
+    cell::RefCell,
+    ops::{Deref, DerefMut},
+};
 
 use alloc::rc::Rc;
 

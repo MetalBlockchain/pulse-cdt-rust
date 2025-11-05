@@ -28,12 +28,7 @@ where
         }
     }
 
-    pub fn to_action(
-        &self,
-        account: Name,
-        authorization: Vec<PermissionLevel>,
-        data: T,
-    ) -> Action {
+    pub fn to_action(&self, account: Name, authorization: Vec<PermissionLevel>, data: T) -> Action {
         Action {
             account: account,
             name: self.name.clone(),

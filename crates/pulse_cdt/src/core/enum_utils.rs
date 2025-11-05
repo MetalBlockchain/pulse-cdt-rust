@@ -3,7 +3,7 @@ use core::ops::BitAnd;
 pub trait BitEnum {
     type Repr: Copy
         + Eq
-        + Default             // for zero
+        + Default // for zero
         + BitAnd<Output = Self::Repr>;
     fn to_bits(self) -> Self::Repr;
 }

@@ -2,7 +2,10 @@ use alloc::{collections::btree_set::BTreeSet, vec::Vec};
 use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
 use pulse_proc_macro::{NumBytes, Read, Write};
 
-use crate::{contracts::KeyWeight, core::{BlockTimestamp, FixedBytes, Name, PublicKey}};
+use crate::{
+    contracts::KeyWeight,
+    core::{BlockTimestamp, FixedBytes, Name, PublicKey},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, NumBytes, Read, Write)]
 #[pulse(crate_path = "pulse_serialization")]
@@ -28,7 +31,7 @@ impl BlockSigningAuthority {
         Self {
             variant: 0,
             threshold,
-            keys
+            keys,
         }
     }
 

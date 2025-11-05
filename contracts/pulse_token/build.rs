@@ -1,5 +1,5 @@
 // build.rs
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
@@ -7,7 +7,10 @@ use std::{
     path::PathBuf,
 };
 use syn::{
-    Attribute, Expr, ExprCall, ExprCast, ExprField, ExprLit, ExprMacro, ExprMethodCall, ExprParen, FnArg, GenericArgument, ImplItem, ImplItemMethod, Item, ItemConst, ItemFn, ItemImpl, ItemStruct, Lit, Meta, MetaList, MetaNameValue, Pat, PatIdent, PatType, PathArguments, Type, TypePath
+    Attribute, Expr, ExprCall, ExprCast, ExprField, ExprLit, ExprMacro, ExprMethodCall, ExprParen,
+    FnArg, GenericArgument, ImplItem, ImplItemMethod, Item, ItemConst, ItemFn, ItemImpl,
+    ItemStruct, Lit, Meta, MetaList, MetaNameValue, Pat, PatIdent, PatType, PathArguments, Type,
+    TypePath,
 };
 
 fn main() {
@@ -40,7 +43,9 @@ fn main() {
     }
 
     fn extract_table_type(ty: &Type) -> Option<(TableKind, String)> {
-        let Type::Path(TypePath { path, .. }) = ty else { return None };
+        let Type::Path(TypePath { path, .. }) = ty else {
+            return None;
+        };
         let seg = path.segments.last()?;
         let kind = match seg.ident.to_string().as_str() {
             "SingletonDefinition" => TableKind::Singleton,
@@ -235,8 +240,8 @@ fn main() {
                     if !has_action_attr(&m.attrs) {
                         continue;
                     }
-                    let action_name = action_name_from_attrs(&m.attrs)
-                        .unwrap_or_else(|| m.sig.ident.to_string());
+                    let action_name =
+                        action_name_from_attrs(&m.attrs).unwrap_or_else(|| m.sig.ident.to_string());
 
                     let params = method_params_as_abi_fields(m);
                     push_action(action_name, params);
@@ -307,42 +312,78 @@ fn main() {
 fn is_builtin_eos_type(t: &str) -> bool {
     // Simple check; extend as needed. Also treat containers as builtins.
     const PRIMS: &[&str] = &[
-        "string","name","bool","symbol","symbol_code","asset",
-        "varuint32","varint32",
-        "int8","int16","int32","int64","int128",
-        "uint8","uint16","uint32","uint64","uint128",
-        "float32","float64",
-        "time_point","time_point_sec","block_timestamp_type",
-        "checksum160","checksum256","checksum512","public_key","signature",
-        "permission_level","bytes",
+        "string",
+        "name",
+        "bool",
+        "symbol",
+        "symbol_code",
+        "asset",
+        "varuint32",
+        "varint32",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "int128",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "uint128",
+        "float32",
+        "float64",
+        "time_point",
+        "time_point_sec",
+        "block_timestamp_type",
+        "checksum160",
+        "checksum256",
+        "checksum512",
+        "public_key",
+        "signature",
+        "permission_level",
+        "bytes",
     ];
-    if PRIMS.contains(&t) { return true; }
+    if PRIMS.contains(&t) {
+        return true;
+    }
     // containers like vector<T>, optional<T>, map<K,V>, pair<A,B>
-    t.starts_with("vector<") || t.starts_with("optional<") || t.starts_with("map<") || t.starts_with("pair<")
+    t.starts_with("vector<")
+        || t.starts_with("optional<")
+        || t.starts_with("map<")
+        || t.starts_with("pair<")
 }
 
 fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -> bool {
     match name {
         // Canonical EOSIO authority family
         "key_weight" if !struct_map.contains_key("key_weight") => {
-            struct_map.insert("key_weight".into(), vec![
-                json!({"name":"key",    "type":"public_key"}),
-                json!({"name":"weight", "type":"uint16"}),
-            ]);
+            struct_map.insert(
+                "key_weight".into(),
+                vec![
+                    json!({"name":"key",    "type":"public_key"}),
+                    json!({"name":"weight", "type":"uint16"}),
+                ],
+            );
             true
         }
         "permission_level_weight" if !struct_map.contains_key("permission_level_weight") => {
-            struct_map.insert("permission_level_weight".into(), vec![
-                json!({"name":"permission","type":"permission_level"}),
-                json!({"name":"weight",    "type":"uint16"}),
-            ]);
+            struct_map.insert(
+                "permission_level_weight".into(),
+                vec![
+                    json!({"name":"permission","type":"permission_level"}),
+                    json!({"name":"weight",    "type":"uint16"}),
+                ],
+            );
             true
         }
         "wait_weight" if !struct_map.contains_key("wait_weight") => {
-            struct_map.insert("wait_weight".into(), vec![
-                json!({"name":"wait_sec","type":"uint32"}),
-                json!({"name":"weight",  "type":"uint16"}),
-            ]);
+            struct_map.insert(
+                "wait_weight".into(),
+                vec![
+                    json!({"name":"wait_sec","type":"uint32"}),
+                    json!({"name":"weight",  "type":"uint16"}),
+                ],
+            );
             true
         }
         "authority" if !struct_map.contains_key("authority") => {
@@ -350,12 +391,15 @@ fn inject_well_known(name: &str, struct_map: &mut HashMap<String, Vec<Value>>) -
             let _ = inject_well_known("key_weight", struct_map);
             let _ = inject_well_known("permission_level_weight", struct_map);
             let _ = inject_well_known("wait_weight", struct_map);
-            struct_map.insert("authority".into(), vec![
-                json!({"name":"threshold","type":"uint32"}),
-                json!({"name":"keys",     "type":"vector<key_weight>"}),
-                json!({"name":"accounts", "type":"vector<permission_level_weight>"}),
-                json!({"name":"waits",    "type":"vector<wait_weight>"}),
-            ]);
+            struct_map.insert(
+                "authority".into(),
+                vec![
+                    json!({"name":"threshold","type":"uint32"}),
+                    json!({"name":"keys",     "type":"vector<key_weight>"}),
+                    json!({"name":"accounts", "type":"vector<permission_level_weight>"}),
+                    json!({"name":"waits",    "type":"vector<wait_weight>"}),
+                ],
+            );
             true
         }
         _ => false,
@@ -529,20 +573,20 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
             match name.as_str() {
                 // Builtins
                 "String" => "string".into(),
-                "str"    => "string".into(),
+                "str" => "string".into(),
 
                 "u128" => "uint128".into(),
-                "u64"  => "uint64".into(),
-                "u32"  => "uint32".into(),
-                "u16"  => "uint16".into(),
-                "u8"   => "uint8".into(),
+                "u64" => "uint64".into(),
+                "u32" => "uint32".into(),
+                "u16" => "uint16".into(),
+                "u8" => "uint8".into(),
                 "i128" => "int128".into(),
-                "i64"  => "int64".into(),
-                "i32"  => "int32".into(),
-                "i16"  => "int16".into(),
-                "i8"   => "int8".into(),
-                "f32"  => "float32".into(),
-                "f64"  => "float64".into(),
+                "i64" => "int64".into(),
+                "i32" => "int32".into(),
+                "i16" => "int16".into(),
+                "i8" => "int8".into(),
+                "f32" => "float32".into(),
+                "f64" => "float64".into(),
                 "bool" => "bool".into(),
 
                 // Containers
@@ -551,7 +595,7 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
                     if let Some(inner) = args.first() {
                         let inner_ty = rust_type_to_eos_type(inner);
                         if inner_ty == "uint8" || inner_ty == "bytes" {
-                            "bytes".into()               // Vec<u8> or Vec<Bytes> → bytes
+                            "bytes".into() // Vec<u8> or Vec<Bytes> → bytes
                         } else {
                             format!("vector<{inner_ty}>")
                         }
@@ -573,38 +617,38 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
                     if args.len() == 2 {
                         let k = rust_type_to_eos_type(args[0]);
                         let v = rust_type_to_eos_type(args[1]);
-                        format!("map<{k},{v}>")        // Requires abieos with map support
+                        format!("map<{k},{v}>") // Requires abieos with map support
                     } else {
                         "map<unknown,unknown>".into()
                     }
                 }
 
                 // EOSIO-ish domain types
-                "Name"         => "name".into(),
-                "Asset"        => "asset".into(),
-                "Symbol"       => "symbol".into(),
-                "SymbolCode"   => "symbol_code".into(),
-                "TimePoint"    => "time_point".into(),
+                "Name" => "name".into(),
+                "Asset" => "asset".into(),
+                "Symbol" => "symbol".into(),
+                "SymbolCode" => "symbol_code".into(),
+                "TimePoint" => "time_point".into(),
                 "TimePointSec" => "time_point_sec".into(),
                 "BlockTimestamp" | "BlockTimestampType" => "block_timestamp_type".into(),
-                "Checksum256"  => "checksum256".into(),
-                "Checksum160"  => "checksum160".into(),
-                "Checksum512"  => "checksum512".into(),
-                "PublicKey"    => "public_key".into(),
-                "Signature"    => "signature".into(),
-                "VarUint32"    => "varuint32".into(),
-                "VarInt32"     => "varint32".into(),
+                "Checksum256" => "checksum256".into(),
+                "Checksum160" => "checksum160".into(),
+                "Checksum512" => "checksum512".into(),
+                "PublicKey" => "public_key".into(),
+                "Signature" => "signature".into(),
+                "VarUint32" => "varuint32".into(),
+                "VarInt32" => "varint32".into(),
 
                 // Project-specific aliases
-                "Id"    => "checksum256".into(),   // block id type in your codebase
+                "Id" => "checksum256".into(), // block id type in your codebase
                 "Bytes" => "bytes".into(),
 
                 // Well known types
                 "PermissionLevel" => "permission_level".into(),
-                "KeyWeight"       => "key_weight".into(),
+                "KeyWeight" => "key_weight".into(),
                 "PermissionLevelWeight" => "permission_level_weight".into(),
-                "WaitWeight"      => "wait_weight".into(),
-                "Authority"       => "authority".into(),
+                "WaitWeight" => "wait_weight".into(),
+                "Authority" => "authority".into(),
 
                 // Default: KEEP THE NAME (don't lowercase!) so custom structs match exactly.
                 other => other.to_string(),
@@ -657,6 +701,11 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
 }
 
 fn path_is(attr: &Attribute, want: &[&str]) -> bool {
-    let segs: Vec<_> = attr.path.segments.iter().map(|s| s.ident.to_string()).collect();
+    let segs: Vec<_> = attr
+        .path
+        .segments
+        .iter()
+        .map(|s| s.ident.to_string())
+        .collect();
     segs.as_slice() == want
 }

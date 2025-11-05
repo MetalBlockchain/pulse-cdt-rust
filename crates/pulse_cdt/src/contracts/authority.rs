@@ -25,7 +25,7 @@ pub struct PermissionLevelWeight {
     pub weight: u16,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Read, Write, NumBytes)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Read, Write, NumBytes)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct PermissionLevel {
     pub actor: Name,

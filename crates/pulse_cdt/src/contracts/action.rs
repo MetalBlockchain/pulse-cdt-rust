@@ -16,6 +16,9 @@ mod action_impl {
         #[link_name = "require_auth"]
         pub fn require_auth(name: u64);
 
+        #[link_name = "require_auth2"]
+        pub fn require_auth2(name: u64, permission: u64);
+
         #[link_name = "has_auth"]
         pub fn has_auth(name: u64) -> bool;
 
@@ -56,6 +59,11 @@ pub fn require_auth(name: Name) {
 }
 
 #[inline]
+pub fn require_auth2(name: Name, permission: Name) {
+    unsafe { action_impl::require_auth2(name.raw(), permission.raw()) }
+}
+
+#[inline]
 pub fn has_auth(name: Name) -> bool {
     unsafe { action_impl::has_auth(name.raw()) }
 }
@@ -81,7 +89,7 @@ pub fn send_inline(data: &Vec<u8>) {
     unsafe { action_impl::send_inline(data.as_ptr() as *mut _, data.len()) };
 }
 
-#[derive(Clone, Debug, Default, Write, NumBytes)]
+#[derive(Clone, Debug, Default, Read, Write, NumBytes, PartialEq, Eq)]
 #[pulse(crate_path = "pulse_serialization")]
 pub struct Action {
     /// Name of the account the action is intended for
@@ -95,15 +103,20 @@ pub struct Action {
 }
 
 impl Action {
-    pub fn new(authorization: Vec<PermissionLevel>, account: Name, name: Name, data: Vec<u8>) -> Self {
+    pub fn new(
+        authorization: Vec<PermissionLevel>,
+        account: Name,
+        name: Name,
+        data: Vec<u8>,
+    ) -> Self {
         return Self {
             account,
             name,
             authorization,
-            data
-        }
+            data,
+        };
     }
-    
+
     pub fn send(&self) {
         let serialized = self.pack().expect("failed to serialize action");
         send_inline(&serialized);

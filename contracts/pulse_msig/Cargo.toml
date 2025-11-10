@@ -10,3 +10,16 @@ pulse_cdt = { workspace = true }
 syn = { version = "1", features = ["full"] }
 quote = "1.0"
 serde_json = "1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["contract-entry"]
+contract-entry = []
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

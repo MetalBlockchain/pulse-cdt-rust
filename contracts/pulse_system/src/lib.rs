@@ -33,13 +33,15 @@ use pulse_cdt::{
 };
 
 use crate::{
-    exchange_state::get_bancor_input, native::{AbiHash, ABI_HASH_TABLE}, tables::{
+    exchange_state::get_bancor_input,
+    native::{ABI_HASH_TABLE, AbiHash},
+    tables::{
         BidRefund, Connector, CurrencyStats, DelegatedBandwidth, DelegatedXPR, ExchangeState,
         GlobalState, GlobalState2, GlobalState3, GlobalState4, GlobalStateD, GlobalStateRAM,
         GlobalStateXPR, NameBid, ProducerInfo, ProducerInfo2, RefundRequest, RexBalance, RexFund,
         RexLoan, RexPool, RexReturnBuckets, RexReturnPool, UserRAM, UserResources, VoterInfo,
         VoterInfoFlags1Fields, VotersXPR, XPRRefundRequest,
-    }
+    },
 };
 
 // Table definitions
@@ -346,16 +348,25 @@ impl SystemContract {
         );
 
         let producers = PRODUCERS_TABLE.index(get_self(), get_self().raw());
-        producers.emplace(get_self(), ProducerInfo {
-            owner: get_self(),
-            total_votes: 0.0,
-            producer_key: PublicKey::new([0, 3, 12, 214, 195, 138, 50, 120, 73, 105, 11, 101, 80, 3, 197, 12, 167, 129, 208, 247, 2, 12, 193, 126, 41, 66, 141, 239, 25, 163, 66, 69, 137, 97].as_ref()),
-            is_active: true,
-            url: "https://metalblockchain.org".to_string(),
-            unpaid_blocks: 0,
-            last_claim_time: current_time_point(),
-            location: 840,
-        });
+        producers.emplace(
+            get_self(),
+            ProducerInfo {
+                owner: get_self(),
+                total_votes: 0.0,
+                producer_key: PublicKey::new(
+                    [
+                        0, 3, 12, 214, 195, 138, 50, 120, 73, 105, 11, 101, 80, 3, 197, 12, 167,
+                        129, 208, 247, 2, 12, 193, 126, 41, 66, 141, 239, 25, 163, 66, 69, 137, 97,
+                    ]
+                    .as_ref(),
+                ),
+                is_active: true,
+                url: "https://metalblockchain.org".to_string(),
+                unpaid_blocks: 0,
+                last_claim_time: current_time_point(),
+                location: 840,
+            },
+        );
 
         OPEN_ACTION
             .to_action(

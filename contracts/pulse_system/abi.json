@@ -97,293 +97,33 @@
       "base": "",
       "fields": [
         {
-          "name": "new_name",
-          "type": "name"
-        },
-        {
-          "name": "high_bidder",
-          "type": "name"
-        },
-        {
-          "name": "high_bid",
-          "type": "int64"
-        },
-        {
-          "name": "last_bid_time",
-          "type": "time_point"
-        }
-      ],
-      "name": "NameBid"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "owner",
-          "type": "name"
-        },
-        {
-          "name": "votepay_share",
-          "type": "float64"
-        },
-        {
-          "name": "last_votepay_share_update",
-          "type": "time_point"
-        }
-      ],
-      "name": "ProducerInfo2"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
           "name": "supply",
           "type": "asset"
         },
         {
-          "name": "max_supply",
-          "type": "asset"
+          "name": "base",
+          "type": "Connector"
         },
         {
-          "name": "issuer",
-          "type": "name"
+          "name": "quote",
+          "type": "Connector"
         }
       ],
-      "name": "CurrencyStats"
+      "name": "ExchangeState"
     },
     {
       "base": "",
       "fields": [
         {
-          "name": "actor",
-          "type": "name"
-        },
-        {
-          "name": "permission",
-          "type": "name"
-        }
-      ],
-      "name": "permission_level"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "threshold",
+          "name": "wait_sec",
           "type": "uint32"
         },
         {
-          "name": "keys",
-          "type": "key_weight[]"
-        },
-        {
-          "name": "accounts",
-          "type": "permission_level_weight[]"
-        },
-        {
-          "name": "waits",
-          "type": "wait_weight[]"
-        }
-      ],
-      "name": "authority"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "creator",
-          "type": "name"
-        },
-        {
-          "name": "name",
-          "type": "name"
-        },
-        {
-          "name": "owner",
-          "type": "authority"
-        },
-        {
-          "name": "active",
-          "type": "authority"
-        }
-      ],
-      "name": "newaccount"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "owner",
-          "type": "name"
-        },
-        {
-          "name": "request_time",
-          "type": "time_point_sec"
-        },
-        {
-          "name": "quantity",
-          "type": "asset"
-        }
-      ],
-      "name": "XPRRefundRequest"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "account",
-          "type": "name"
-        },
-        {
-          "name": "vmtype",
-          "type": "uint8"
-        },
-        {
-          "name": "vmversion",
-          "type": "uint8"
-        },
-        {
-          "name": "code",
-          "type": "bytes"
-        }
-      ],
-      "name": "setcode"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "version",
-          "type": "uint8"
-        },
-        {
-          "name": "owner",
-          "type": "name"
-        },
-        {
-          "name": "balance",
-          "type": "asset"
-        }
-      ],
-      "name": "RexFund"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "max_ram_size",
-          "type": "uint64"
-        },
-        {
-          "name": "total_ram_bytes_reserved",
-          "type": "uint64"
-        },
-        {
-          "name": "total_ram_stake",
-          "type": "int64"
-        },
-        {
-          "name": "last_producer_schedule_update",
-          "type": "block_timestamp_type"
-        },
-        {
-          "name": "last_pervote_bucket_fill",
-          "type": "time_point"
-        },
-        {
-          "name": "pervote_bucket",
-          "type": "int64"
-        },
-        {
-          "name": "perblock_bucket",
-          "type": "int64"
-        },
-        {
-          "name": "total_unpaid_blocks",
-          "type": "uint32"
-        },
-        {
-          "name": "total_activated_stake",
-          "type": "int64"
-        },
-        {
-          "name": "thresh_activated_stake_time",
-          "type": "time_point"
-        },
-        {
-          "name": "last_producer_schedule_size",
+          "name": "weight",
           "type": "uint16"
-        },
-        {
-          "name": "total_producer_vote_weight",
-          "type": "float64"
-        },
-        {
-          "name": "last_name_close",
-          "type": "block_timestamp_type"
         }
       ],
-      "name": "GlobalState"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "max_bp_per_vote",
-          "type": "uint64"
-        },
-        {
-          "name": "min_bp_reward",
-          "type": "uint64"
-        },
-        {
-          "name": "unstake_period",
-          "type": "uint64"
-        },
-        {
-          "name": "process_by",
-          "type": "uint64"
-        },
-        {
-          "name": "process_interval",
-          "type": "uint64"
-        },
-        {
-          "name": "voters_claim_interval",
-          "type": "uint64"
-        },
-        {
-          "name": "spare1",
-          "type": "uint64"
-        },
-        {
-          "name": "spare2",
-          "type": "uint64"
-        }
-      ],
-      "name": "GlobalStateXPR"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "from",
-          "type": "name"
-        },
-        {
-          "name": "to",
-          "type": "name"
-        },
-        {
-          "name": "net_weight",
-          "type": "asset"
-        },
-        {
-          "name": "cpu_weight",
-          "type": "asset"
-        }
-      ],
-      "name": "DelegatedBandwidth"
+      "name": "wait_weight"
     },
     {
       "base": "",
@@ -427,23 +167,45 @@
       "base": "",
       "fields": [
         {
-          "name": "account",
+          "name": "producer",
           "type": "name"
         },
         {
-          "name": "ram",
-          "type": "uint64"
+          "name": "producer_authority",
+          "type": "block_signing_authority"
         },
         {
-          "name": "quantity",
-          "type": "asset"
+          "name": "url",
+          "type": "string"
         },
         {
-          "name": "ramlimit",
-          "type": "uint64"
+          "name": "location",
+          "type": "uint16"
         }
       ],
-      "name": "UserRAM"
+      "name": "regproducer2"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "threshold",
+          "type": "uint32"
+        },
+        {
+          "name": "keys",
+          "type": "key_weight[]"
+        },
+        {
+          "name": "accounts",
+          "type": "permission_level_weight[]"
+        },
+        {
+          "name": "waits",
+          "type": "wait_weight[]"
+        }
+      ],
+      "name": "authority"
     },
     {
       "base": "",
@@ -453,19 +215,249 @@
           "type": "name"
         },
         {
+          "name": "request_time",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        }
+      ],
+      "name": "XPRRefundRequest"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        }
+      ],
+      "name": "AbiHash"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "staked",
+          "type": "uint64"
+        },
+        {
+          "name": "isqualified",
+          "type": "bool"
+        },
+        {
+          "name": "claimamount",
+          "type": "uint64"
+        },
+        {
+          "name": "lastclaim",
+          "type": "uint64"
+        },
+        {
+          "name": "startstake",
+          "type": "uint64?"
+        },
+        {
+          "name": "startqualif",
+          "type": "bool?"
+        }
+      ],
+      "name": "VotersXPR"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "version",
+          "type": "uint64"
+        },
+        {
+          "name": "total_lent",
+          "type": "asset"
+        },
+        {
+          "name": "total_unlent",
+          "type": "asset"
+        },
+        {
+          "name": "total_rent",
+          "type": "asset"
+        },
+        {
+          "name": "total_lendable",
+          "type": "asset"
+        },
+        {
+          "name": "total_rex",
+          "type": "asset"
+        },
+        {
+          "name": "namebid_proceeds",
+          "type": "asset"
+        },
+        {
+          "name": "loan_num",
+          "type": "uint64"
+        }
+      ],
+      "name": "RexPool"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "supply",
+          "type": "asset"
+        },
+        {
+          "name": "max_supply",
+          "type": "asset"
+        },
+        {
+          "name": "issuer",
+          "type": "name"
+        }
+      ],
+      "name": "CurrencyStats"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "threshold",
+          "type": "uint32"
+        },
+        {
+          "name": "keys",
+          "type": "key_weight[]"
+        }
+      ],
+      "name": "block_signing_authority_v0"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "key",
+          "type": "public_key"
+        },
+        {
+          "name": "weight",
+          "type": "uint16"
+        }
+      ],
+      "name": "key_weight"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "ram_price_per_byte",
+          "type": "asset"
+        },
+        {
+          "name": "max_per_user_bytes",
+          "type": "uint64"
+        },
+        {
+          "name": "ram_fee_percent",
+          "type": "uint64"
+        },
+        {
+          "name": "total_ram",
+          "type": "uint64"
+        },
+        {
+          "name": "total_xpr",
+          "type": "uint64"
+        }
+      ],
+      "name": "GlobalStateRAM"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "from",
+          "type": "name"
+        },
+        {
+          "name": "to",
+          "type": "name"
+        },
+        {
           "name": "net_weight",
           "type": "asset"
         },
         {
           "name": "cpu_weight",
           "type": "asset"
-        },
-        {
-          "name": "ram_bytes",
-          "type": "int64"
         }
       ],
-      "name": "UserResources"
+      "name": "DelegatedBandwidth"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "last_vpay_state_update",
+          "type": "time_point"
+        },
+        {
+          "name": "total_vpay_share_change_rate",
+          "type": "float64"
+        }
+      ],
+      "name": "GlobalState3"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "account",
+          "type": "name"
+        },
+        {
+          "name": "abi",
+          "type": "bytes"
+        }
+      ],
+      "name": "setabi"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "new_ram_per_block",
+          "type": "uint16"
+        },
+        {
+          "name": "last_ram_increase",
+          "type": "block_timestamp_type"
+        },
+        {
+          "name": "last_block_num",
+          "type": "block_timestamp_type"
+        },
+        {
+          "name": "total_producer_votepay_share",
+          "type": "float64"
+        },
+        {
+          "name": "revision",
+          "type": "uint8"
+        }
+      ],
+      "name": "GlobalState2"
     },
     {
       "base": "",
@@ -475,11 +467,85 @@
           "type": "uint8"
         },
         {
-          "name": "core",
-          "type": "symbol"
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "balance",
+          "type": "asset"
         }
       ],
-      "name": "init"
+      "name": "RexFund"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "max_bp_per_vote",
+          "type": "uint64"
+        },
+        {
+          "name": "min_bp_reward",
+          "type": "uint64"
+        },
+        {
+          "name": "unstake_period",
+          "type": "uint64"
+        },
+        {
+          "name": "process_by",
+          "type": "uint64"
+        },
+        {
+          "name": "process_interval",
+          "type": "uint64"
+        },
+        {
+          "name": "voters_claim_interval",
+          "type": "uint64"
+        },
+        {
+          "name": "spare1",
+          "type": "uint64"
+        },
+        {
+          "name": "spare2",
+          "type": "uint64"
+        }
+      ],
+      "name": "GlobalStateXPR"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "creator",
+          "type": "name"
+        },
+        {
+          "name": "name",
+          "type": "name"
+        },
+        {
+          "name": "owner",
+          "type": "authority"
+        },
+        {
+          "name": "active",
+          "type": "authority"
+        }
+      ],
+      "name": "newaccount"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "producer",
+          "type": "name"
+        }
+      ],
+      "name": "unregprod"
     },
     {
       "base": "",
@@ -511,7 +577,95 @@
       "base": "",
       "fields": [
         {
+          "name": "balance",
+          "type": "asset"
+        },
+        {
+          "name": "weight",
+          "type": "float64"
+        }
+      ],
+      "name": "Connector"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
           "name": "from",
+          "type": "name"
+        },
+        {
+          "name": "to",
+          "type": "name"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        }
+      ],
+      "name": "DelegatedXPR"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "version",
+          "type": "uint64"
+        },
+        {
+          "name": "last_dist_time",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "pending_bucket_time",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "oldest_bucket_time",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "pending_bucket_proceeds",
+          "type": "int64"
+        },
+        {
+          "name": "current_rate_of_proceeds",
+          "type": "int64"
+        },
+        {
+          "name": "proceeds",
+          "type": "int64"
+        }
+      ],
+      "name": "RexReturnPool"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "new_name",
+          "type": "name"
+        },
+        {
+          "name": "high_bidder",
+          "type": "name"
+        },
+        {
+          "name": "high_bid",
+          "type": "int64"
+        },
+        {
+          "name": "last_bid_time",
+          "type": "time_point"
+        }
+      ],
+      "name": "NameBid"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "payer",
           "type": "name"
         },
         {
@@ -519,47 +673,99 @@
           "type": "name"
         },
         {
-          "name": "unstake_net_quantity",
-          "type": "asset"
-        },
-        {
-          "name": "unstake_cpu_quantity",
-          "type": "asset"
+          "name": "bytes",
+          "type": "uint32"
         }
       ],
-      "name": "undelegatebw"
+      "name": "buyrambsys"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "account",
+          "type": "name"
+        },
+        {
+          "name": "vmtype",
+          "type": "uint8"
+        },
+        {
+          "name": "vmversion",
+          "type": "uint8"
+        },
+        {
+          "name": "code",
+          "type": "bytes"
+        }
+      ],
+      "name": "setcode"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "proxy",
+          "type": "name"
+        },
+        {
+          "name": "is_proxy",
+          "type": "bool"
+        }
+      ],
+      "name": "regproxy"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "max_ram_size",
+          "type": "uint64"
+        }
+      ],
+      "name": "setram"
     },
     {
       "base": "",
       "fields": [
         {
           "name": "version",
-          "type": "uint8"
+          "type": "uint32"
         },
         {
-          "name": "return_buckets",
-          "type": "pair_time_point_sec_int64[]"
+          "name": "producers",
+          "type": "producer_key[]"
         }
       ],
-      "name": "RexReturnBuckets"
+      "name": "producer_schedule"
     },
     {
       "base": "",
       "fields": [
         {
-          "name": "continuous_rate",
-          "type": "float64"
+          "name": "permission",
+          "type": "permission_level"
         },
         {
-          "name": "inflation_pay_factor",
-          "type": "int64"
-        },
-        {
-          "name": "votepay_factor",
-          "type": "int64"
+          "name": "weight",
+          "type": "uint16"
         }
       ],
-      "name": "GlobalState4"
+      "name": "permission_level_weight"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "bidder",
+          "type": "name"
+        },
+        {
+          "name": "amount",
+          "type": "asset"
+        }
+      ],
+      "name": "BidRefund"
     },
     {
       "base": "",
@@ -627,153 +833,15 @@
       "base": "",
       "fields": [
         {
-          "name": "block_header",
-          "type": "block_header"
-        }
-      ],
-      "name": "onblock"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "gstate",
-          "type": "GlobalState"
-        },
-        {
-          "name": "gstate2",
-          "type": "GlobalState2"
-        },
-        {
-          "name": "gstate3",
-          "type": "GlobalState3"
-        },
-        {
-          "name": "gstate4",
-          "type": "GlobalState4"
-        },
-        {
-          "name": "gstateram",
-          "type": "GlobalStateRAM"
-        }
-      ],
-      "name": "SystemContract"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
           "name": "version",
-          "type": "uint64"
+          "type": "uint8"
         },
         {
-          "name": "last_dist_time",
-          "type": "time_point_sec"
-        },
-        {
-          "name": "pending_bucket_time",
-          "type": "time_point_sec"
-        },
-        {
-          "name": "oldest_bucket_time",
-          "type": "time_point_sec"
-        },
-        {
-          "name": "pending_bucket_proceeds",
-          "type": "int64"
-        },
-        {
-          "name": "current_rate_of_proceeds",
-          "type": "int64"
-        },
-        {
-          "name": "proceeds",
-          "type": "int64"
+          "name": "core",
+          "type": "symbol"
         }
       ],
-      "name": "RexReturnPool"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "from",
-          "type": "name"
-        },
-        {
-          "name": "receiver",
-          "type": "name"
-        },
-        {
-          "name": "stake_net_quantity",
-          "type": "asset"
-        },
-        {
-          "name": "stake_cpu_quantity",
-          "type": "asset"
-        },
-        {
-          "name": "transfer",
-          "type": "bool"
-        }
-      ],
-      "name": "delegatebw"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "account",
-          "type": "name"
-        },
-        {
-          "name": "abi",
-          "type": "bytes"
-        }
-      ],
-      "name": "setabi"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "producer",
-          "type": "name"
-        }
-      ],
-      "name": "unregprod"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "payer",
-          "type": "name"
-        },
-        {
-          "name": "receiver",
-          "type": "name"
-        },
-        {
-          "name": "quant",
-          "type": "asset"
-        }
-      ],
-      "name": "buyramsys"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "owner",
-          "type": "name"
-        },
-        {
-          "name": "hash",
-          "type": "checksum256"
-        }
-      ],
-      "name": "AbiHash"
+      "name": "init"
     },
     {
       "base": "",
@@ -805,45 +873,257 @@
           "type": "name"
         },
         {
-          "name": "staked",
-          "type": "uint64"
+          "name": "net_weight",
+          "type": "asset"
         },
         {
-          "name": "isqualified",
-          "type": "bool"
+          "name": "cpu_weight",
+          "type": "asset"
         },
         {
-          "name": "claimamount",
-          "type": "uint64"
-        },
-        {
-          "name": "lastclaim",
-          "type": "uint64"
-        },
-        {
-          "name": "startstake",
-          "type": "uint64?"
-        },
-        {
-          "name": "startqualif",
-          "type": "bool?"
+          "name": "ram_bytes",
+          "type": "int64"
         }
       ],
-      "name": "VotersXPR"
+      "name": "UserResources"
     },
     {
       "base": "",
       "fields": [
         {
-          "name": "bidder",
+          "name": "from",
           "type": "name"
         },
         {
-          "name": "amount",
+          "name": "receiver",
+          "type": "name"
+        },
+        {
+          "name": "stake_net_quantity",
+          "type": "asset"
+        },
+        {
+          "name": "stake_cpu_quantity",
+          "type": "asset"
+        },
+        {
+          "name": "transfer",
+          "type": "bool"
+        }
+      ],
+      "name": "delegatebw"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "gstate",
+          "type": "GlobalState"
+        },
+        {
+          "name": "gstate2",
+          "type": "GlobalState2"
+        },
+        {
+          "name": "gstate3",
+          "type": "GlobalState3"
+        },
+        {
+          "name": "gstate4",
+          "type": "GlobalState4"
+        },
+        {
+          "name": "gstateram",
+          "type": "GlobalStateRAM"
+        }
+      ],
+      "name": "SystemContract"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "from",
+          "type": "name"
+        },
+        {
+          "name": "receiver",
+          "type": "name"
+        },
+        {
+          "name": "unstake_net_quantity",
+          "type": "asset"
+        },
+        {
+          "name": "unstake_cpu_quantity",
           "type": "asset"
         }
       ],
-      "name": "BidRefund"
+      "name": "undelegatebw"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "block_header",
+          "type": "block_header"
+        }
+      ],
+      "name": "onblock"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "key",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "value",
+          "type": "int64"
+        }
+      ],
+      "name": "pair_time_point_sec_int64"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        }
+      ],
+      "name": "refund"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "account",
+          "type": "name"
+        },
+        {
+          "name": "is_priv",
+          "type": "uint8"
+        }
+      ],
+      "name": "setpriv"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "continuous_rate",
+          "type": "float64"
+        },
+        {
+          "name": "inflation_pay_factor",
+          "type": "int64"
+        },
+        {
+          "name": "votepay_factor",
+          "type": "int64"
+        }
+      ],
+      "name": "GlobalState4"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "producer_name",
+          "type": "name"
+        },
+        {
+          "name": "block_signing_key",
+          "type": "public_key"
+        }
+      ],
+      "name": "producer_key"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "timestamp",
+          "type": "uint32"
+        },
+        {
+          "name": "producer",
+          "type": "name"
+        },
+        {
+          "name": "confirmed",
+          "type": "uint16"
+        },
+        {
+          "name": "previous",
+          "type": "checksum256"
+        },
+        {
+          "name": "transaction_mroot",
+          "type": "checksum256"
+        },
+        {
+          "name": "action_mroot",
+          "type": "checksum256"
+        },
+        {
+          "name": "schedule_version",
+          "type": "uint32"
+        },
+        {
+          "name": "new_producers",
+          "type": "producer_schedule?"
+        }
+      ],
+      "name": "block_header"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "actor",
+          "type": "name"
+        },
+        {
+          "name": "permission",
+          "type": "name"
+        }
+      ],
+      "name": "permission_level"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "version",
+          "type": "uint8"
+        },
+        {
+          "name": "return_buckets",
+          "type": "pair_time_point_sec_int64[]"
+        }
+      ],
+      "name": "RexReturnBuckets"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "votepay_share",
+          "type": "float64"
+        },
+        {
+          "name": "last_votepay_share_update",
+          "type": "time_point"
+        }
+      ],
+      "name": "ProducerInfo2"
     },
     {
       "base": "",
@@ -882,316 +1162,6 @@
         }
       ],
       "name": "RexLoan"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "owner",
-          "type": "name"
-        }
-      ],
-      "name": "refund"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "producer",
-          "type": "name"
-        },
-        {
-          "name": "producer_key",
-          "type": "public_key"
-        },
-        {
-          "name": "url",
-          "type": "string"
-        },
-        {
-          "name": "location",
-          "type": "uint16"
-        }
-      ],
-      "name": "regproducer"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "new_ram_per_block",
-          "type": "uint16"
-        },
-        {
-          "name": "last_ram_increase",
-          "type": "block_timestamp_type"
-        },
-        {
-          "name": "last_block_num",
-          "type": "block_timestamp_type"
-        },
-        {
-          "name": "total_producer_votepay_share",
-          "type": "float64"
-        },
-        {
-          "name": "revision",
-          "type": "uint8"
-        }
-      ],
-      "name": "GlobalState2"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "producer",
-          "type": "name"
-        },
-        {
-          "name": "producer_authority",
-          "type": "block_signing_authority"
-        },
-        {
-          "name": "url",
-          "type": "string"
-        },
-        {
-          "name": "location",
-          "type": "uint16"
-        }
-      ],
-      "name": "regproducer2"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "key",
-          "type": "public_key"
-        },
-        {
-          "name": "weight",
-          "type": "uint16"
-        }
-      ],
-      "name": "key_weight"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "producer_name",
-          "type": "name"
-        },
-        {
-          "name": "block_signing_key",
-          "type": "public_key"
-        }
-      ],
-      "name": "producer_key"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "version",
-          "type": "uint32"
-        },
-        {
-          "name": "producers",
-          "type": "producer_key[]"
-        }
-      ],
-      "name": "producer_schedule"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "version",
-          "type": "uint64"
-        },
-        {
-          "name": "total_lent",
-          "type": "asset"
-        },
-        {
-          "name": "total_unlent",
-          "type": "asset"
-        },
-        {
-          "name": "total_rent",
-          "type": "asset"
-        },
-        {
-          "name": "total_lendable",
-          "type": "asset"
-        },
-        {
-          "name": "total_rex",
-          "type": "asset"
-        },
-        {
-          "name": "namebid_proceeds",
-          "type": "asset"
-        },
-        {
-          "name": "loan_num",
-          "type": "uint64"
-        }
-      ],
-      "name": "RexPool"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "balance",
-          "type": "asset"
-        },
-        {
-          "name": "weight",
-          "type": "float64"
-        }
-      ],
-      "name": "Connector"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "account",
-          "type": "name"
-        },
-        {
-          "name": "is_priv",
-          "type": "uint8"
-        }
-      ],
-      "name": "setpriv"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "threshold",
-          "type": "uint32"
-        },
-        {
-          "name": "keys",
-          "type": "key_weight[]"
-        }
-      ],
-      "name": "block_signing_authority_v0"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "key",
-          "type": "time_point_sec"
-        },
-        {
-          "name": "value",
-          "type": "int64"
-        }
-      ],
-      "name": "pair_time_point_sec_int64"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "from",
-          "type": "name"
-        },
-        {
-          "name": "to",
-          "type": "name"
-        },
-        {
-          "name": "quantity",
-          "type": "asset"
-        }
-      ],
-      "name": "DelegatedXPR"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "payer",
-          "type": "name"
-        },
-        {
-          "name": "receiver",
-          "type": "name"
-        },
-        {
-          "name": "bytes",
-          "type": "uint32"
-        }
-      ],
-      "name": "buyrambsys"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "wait_sec",
-          "type": "uint32"
-        },
-        {
-          "name": "weight",
-          "type": "uint16"
-        }
-      ],
-      "name": "wait_weight"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "ram_price_per_byte",
-          "type": "asset"
-        },
-        {
-          "name": "max_per_user_bytes",
-          "type": "uint64"
-        },
-        {
-          "name": "ram_fee_percent",
-          "type": "uint64"
-        },
-        {
-          "name": "total_ram",
-          "type": "uint64"
-        },
-        {
-          "name": "total_xpr",
-          "type": "uint64"
-        }
-      ],
-      "name": "GlobalStateRAM"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "supply",
-          "type": "asset"
-        },
-        {
-          "name": "base",
-          "type": "Connector"
-        },
-        {
-          "name": "quote",
-          "type": "Connector"
-        }
-      ],
-      "name": "ExchangeState"
     },
     {
       "base": "",
@@ -1243,29 +1213,41 @@
       "base": "",
       "fields": [
         {
-          "name": "last_vpay_state_update",
-          "type": "time_point"
+          "name": "account",
+          "type": "name"
         },
         {
-          "name": "total_vpay_share_change_rate",
-          "type": "float64"
+          "name": "ram",
+          "type": "uint64"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        },
+        {
+          "name": "ramlimit",
+          "type": "uint64"
         }
       ],
-      "name": "GlobalState3"
+      "name": "UserRAM"
     },
     {
       "base": "",
       "fields": [
         {
-          "name": "proxy",
+          "name": "payer",
           "type": "name"
         },
         {
-          "name": "is_proxy",
-          "type": "bool"
+          "name": "receiver",
+          "type": "name"
+        },
+        {
+          "name": "quant",
+          "type": "asset"
         }
       ],
-      "name": "regproxy"
+      "name": "buyramsys"
     },
     {
       "base": "",
@@ -1273,61 +1255,79 @@
         {
           "name": "max_ram_size",
           "type": "uint64"
+        },
+        {
+          "name": "total_ram_bytes_reserved",
+          "type": "uint64"
+        },
+        {
+          "name": "total_ram_stake",
+          "type": "int64"
+        },
+        {
+          "name": "last_producer_schedule_update",
+          "type": "block_timestamp_type"
+        },
+        {
+          "name": "last_pervote_bucket_fill",
+          "type": "time_point"
+        },
+        {
+          "name": "pervote_bucket",
+          "type": "int64"
+        },
+        {
+          "name": "perblock_bucket",
+          "type": "int64"
+        },
+        {
+          "name": "total_unpaid_blocks",
+          "type": "uint32"
+        },
+        {
+          "name": "total_activated_stake",
+          "type": "int64"
+        },
+        {
+          "name": "thresh_activated_stake_time",
+          "type": "time_point"
+        },
+        {
+          "name": "last_producer_schedule_size",
+          "type": "uint16"
+        },
+        {
+          "name": "total_producer_vote_weight",
+          "type": "float64"
+        },
+        {
+          "name": "last_name_close",
+          "type": "block_timestamp_type"
         }
       ],
-      "name": "setram"
+      "name": "GlobalState"
     },
     {
       "base": "",
       "fields": [
-        {
-          "name": "timestamp",
-          "type": "uint32"
-        },
         {
           "name": "producer",
           "type": "name"
         },
         {
-          "name": "confirmed",
-          "type": "uint16"
+          "name": "producer_key",
+          "type": "public_key"
         },
         {
-          "name": "previous",
-          "type": "checksum256"
+          "name": "url",
+          "type": "string"
         },
         {
-          "name": "transaction_mroot",
-          "type": "checksum256"
-        },
-        {
-          "name": "action_mroot",
-          "type": "checksum256"
-        },
-        {
-          "name": "schedule_version",
-          "type": "uint32"
-        },
-        {
-          "name": "new_producers",
-          "type": "producer_schedule?"
-        }
-      ],
-      "name": "block_header"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "permission",
-          "type": "permission_level"
-        },
-        {
-          "name": "weight",
+          "name": "location",
           "type": "uint16"
         }
       ],
-      "name": "permission_level_weight"
+      "name": "regproducer"
     }
   ],
   "tables": [

@@ -1,7 +1,7 @@
 // build.rs
 use serde_json::{Value, json};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     env, fs,
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
@@ -56,9 +56,9 @@ fn main() {
         items: all_items,
     };
 
-    let mut actions = vec![];
-    let mut tables = vec![];
-    let mut struct_map: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
+    let mut actions: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+    let mut tables: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+    let mut struct_map: BTreeMap<String, (&str, Vec<serde_json::Value>)> = BTreeMap::new();
     let mut type_map: HashMap<String, serde_json::Value> = HashMap::new();
     let mut variant_map: HashMap<String, serde_json::Value> = HashMap::new();
     let mut reciardian_contracts: HashMap<String, serde_json::Value> = HashMap::new();
@@ -188,7 +188,7 @@ fn main() {
                 let ty_str = rust_type_to_eos_type(strip_refs(&field.ty));
                 field_entries.push(json!({ "name": name, "type": ty_str }));
             }
-            struct_map.insert(struct_name.clone(), field_entries);
+            struct_map.insert(struct_name.clone(), ("", field_entries));
 
             if has_table_attr(attrs) {
                 row_types_with_table_attr.insert(struct_name.clone());
@@ -207,13 +207,16 @@ fn main() {
                 };
 
                 if seen_table_names.insert(table_name.clone()) {
-                    tables.push(json!({
-                        "name": table_name,
-                        "type": struct_name,
-                        "index_type": index_type,
-                        "key_names": [],
-                        "key_types": [],
-                    }));
+                    tables.insert(
+                        table_name.clone(),
+                        json!({
+                            "name": table_name,
+                            "type": struct_name,
+                            "index_type": index_type,
+                            "key_names": [],
+                            "key_types": [],
+                        }),
+                    );
                 }
             }
         }
@@ -230,15 +233,20 @@ fn main() {
         }
         if !row_types_with_table_attr.contains(row_type) {
             // make sure the row struct appears in ABI "structs" even if empty
-            struct_map.entry(row_type.clone()).or_insert_with(Vec::new);
+            struct_map
+                .entry(row_type.clone())
+                .or_insert_with(|| ("", Vec::new()));
 
-            tables.push(json!({
-                "name": name,
-                "type": row_type,
-                "index_type": "i64",
-                "key_names": [],
-                "key_types": [],
-            }));
+            tables.insert(
+                name.clone(),
+                json!({
+                    "name": name,
+                    "type": row_type,
+                    "index_type": "i64",
+                    "key_names": [],
+                    "key_types": [],
+                }),
+            );
             seen_table_names.insert(name.clone());
         }
     }
@@ -252,13 +260,16 @@ fn main() {
             .map(|(name, ty)| json!({ "name": name, "type": ty }))
             .collect();
 
-        struct_map.insert(action_name.clone(), fields_json);
+        struct_map.insert(action_name.clone(), ("", fields_json));
 
-        actions.push(json!({
-            "name": action_name,
-            "type": action_name,
-            "ricardian_contract": ""
-        }));
+        actions.insert(
+            action_name.clone(),
+            json!({
+                "name": action_name,
+                "type": action_name,
+                "ricardian_contract": ""
+            }),
+        );
     };
 
     // #[contract] impl … { #[action] fn … }
@@ -327,17 +338,19 @@ fn main() {
     let types_json: Vec<_> = type_map.iter().map(|(name, value)| value).collect();
     let structs_json: Vec<_> = struct_map
         .iter()
-        .map(|(name, fields)| json!({ "name": name, "base": "", "fields": fields }))
+        .map(|(name, fields)| json!({ "name": name, "base": fields.0, "fields": fields.1 }))
         .collect();
     let variants_json: Vec<_> = variant_map.iter().map(|(name, value)| value).collect();
+    let actions_json: Vec<_> = actions.iter().map(|(name, value)| value).collect();
+    let tables_json: Vec<_> = tables.iter().map(|(name, value)| value).collect();
 
     let abi_json = json!({
         "____comment": "This file was generated. DO NOT EDIT ",
         "version": "eosio::abi/1.1",
         "types": types_json,
         "structs": structs_json,
-        "actions": actions,
-        "tables": tables,
+        "actions": actions_json,
+        "tables": tables_json,
         "ricardian_clauses": [
             {
                 "id": "UserAgreement",
@@ -430,7 +443,7 @@ fn is_builtin_eos_type(t: &str) -> bool {
 
 fn inject_well_known(
     name: &str,
-    struct_map: &mut HashMap<String, Vec<Value>>,
+    struct_map: &mut BTreeMap<String, (&str, Vec<Value>)>,
     type_map: &mut HashMap<String, Value>,
     variant_map: &mut HashMap<String, Value>,
 ) -> bool {
@@ -439,20 +452,26 @@ fn inject_well_known(
         "key_weight" if !struct_map.contains_key("key_weight") => {
             struct_map.insert(
                 "key_weight".into(),
-                vec![
-                    json!({"name":"key",    "type":"public_key"}),
-                    json!({"name":"weight", "type":"uint16"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"key",    "type":"public_key"}),
+                        json!({"name":"weight", "type":"uint16"}),
+                    ],
+                ),
             );
             true
         }
         "permission_level" if !struct_map.contains_key("permission_level") => {
             struct_map.insert(
                 "permission_level".into(),
-                vec![
-                    json!({"name":"actor",      "type":"name"}),
-                    json!({"name":"permission", "type":"name"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"actor",      "type":"name"}),
+                        json!({"name":"permission", "type":"name"}),
+                    ],
+                ),
             );
             true
         }
@@ -461,20 +480,26 @@ fn inject_well_known(
             let _ = inject_well_known("permission_level", struct_map, type_map, variant_map);
             struct_map.insert(
                 "permission_level_weight".into(),
-                vec![
-                    json!({"name":"permission","type":"permission_level"}),
-                    json!({"name":"weight",    "type":"uint16"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"permission","type":"permission_level"}),
+                        json!({"name":"weight",    "type":"uint16"}),
+                    ],
+                ),
             );
             true
         }
         "wait_weight" if !struct_map.contains_key("wait_weight") => {
             struct_map.insert(
                 "wait_weight".into(),
-                vec![
-                    json!({"name":"wait_sec","type":"uint32"}),
-                    json!({"name":"weight",  "type":"uint16"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"wait_sec","type":"uint32"}),
+                        json!({"name":"weight",  "type":"uint16"}),
+                    ],
+                ),
             );
             true
         }
@@ -485,12 +510,15 @@ fn inject_well_known(
             let _ = inject_well_known("wait_weight", struct_map, type_map, variant_map);
             struct_map.insert(
                 "authority".into(),
-                vec![
-                    json!({"name":"threshold","type":"uint32"}),
-                    json!({"name":"keys",     "type":"key_weight[]"}),
-                    json!({"name":"accounts", "type":"permission_level_weight[]"}),
-                    json!({"name":"waits",    "type":"wait_weight[]"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"threshold","type":"uint32"}),
+                        json!({"name":"keys",     "type":"key_weight[]"}),
+                        json!({"name":"accounts", "type":"permission_level_weight[]"}),
+                        json!({"name":"waits",    "type":"wait_weight[]"}),
+                    ],
+                ),
             );
             true
         }
@@ -499,10 +527,13 @@ fn inject_well_known(
             let _ = inject_well_known("key_weight", struct_map, type_map, variant_map);
             struct_map.insert(
                 "block_signing_authority_v0".into(),
-                vec![
-                    json!({"name":"threshold","type":"uint32"}),
-                    json!({"name":"keys",     "type":"key_weight[]"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"threshold","type":"uint32"}),
+                        json!({"name":"keys",     "type":"key_weight[]"}),
+                    ],
+                ),
             );
             variant_map.insert(
                 "variant_block_signing_authority_v0".into(),
@@ -523,10 +554,13 @@ fn inject_well_known(
         "producer_key" if !struct_map.contains_key("producer_key") => {
             struct_map.insert(
                 "producer_key".into(),
-                vec![
-                    json!({"name":"producer_name","type":"name"}),
-                    json!({"name":"block_signing_key","type":"public_key"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"producer_name","type":"name"}),
+                        json!({"name":"block_signing_key","type":"public_key"}),
+                    ],
+                ),
             );
             true
         }
@@ -535,10 +569,13 @@ fn inject_well_known(
             let _ = inject_well_known("producer_key", struct_map, type_map, variant_map);
             struct_map.insert(
                 "producer_schedule".into(),
-                vec![
-                    json!({"name":"version","type":"uint32"}),
-                    json!({"name":"producers","type":"producer_key[]"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"version","type":"uint32"}),
+                        json!({"name":"producers","type":"producer_key[]"}),
+                    ],
+                ),
             );
             true
         }
@@ -547,16 +584,85 @@ fn inject_well_known(
             let _ = inject_well_known("producer_schedule", struct_map, type_map, variant_map);
             struct_map.insert(
                 "block_header".into(),
-                vec![
-                    json!({"name":"timestamp","type":"uint32"}),
-                    json!({"name":"producer","type":"name"}),
-                    json!({"name":"confirmed","type":"uint16"}),
-                    json!({"name":"previous","type":"checksum256"}),
-                    json!({"name":"transaction_mroot","type":"checksum256"}),
-                    json!({"name":"action_mroot","type":"checksum256"}),
-                    json!({"name":"schedule_version","type":"uint32"}),
-                    json!({"name":"new_producers","type":"producer_schedule?"}),
-                ],
+                (
+                    "",
+                    vec![
+                        json!({"name":"timestamp","type":"uint32"}),
+                        json!({"name":"producer","type":"name"}),
+                        json!({"name":"confirmed","type":"uint16"}),
+                        json!({"name":"previous","type":"checksum256"}),
+                        json!({"name":"transaction_mroot","type":"checksum256"}),
+                        json!({"name":"action_mroot","type":"checksum256"}),
+                        json!({"name":"schedule_version","type":"uint32"}),
+                        json!({"name":"new_producers","type":"producer_schedule?"}),
+                    ],
+                ),
+            );
+            true
+        }
+        "transaction_header" if !struct_map.contains_key("transaction_header") => {
+            struct_map.insert(
+                "transaction_header".into(),
+                (
+                    "",
+                    vec![
+                        json!({"name":"expiration","type":"time_point_sec"}),
+                        json!({"name":"ref_block_num","type":"uint16"}),
+                        json!({"name":"ref_block_prefix","type":"uint32"}),
+                        json!({"name":"max_net_usage_words","type":"varuint32"}),
+                        json!({"name":"max_cpu_usage","type":"uint8"}),
+                        json!({"name":"delay_sec","type":"varuint32"}),
+                    ],
+                ),
+            );
+            true
+        }
+        "transaction" if !struct_map.contains_key("transaction") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("transaction_header", struct_map, type_map, variant_map);
+            let _ = inject_well_known("action", struct_map, type_map, variant_map);
+            let _ = inject_well_known("extension", struct_map, type_map, variant_map);
+            struct_map.insert(
+                "transaction".into(),
+                (
+                    "transaction_header",
+                    vec![
+                        json!({"name":"header","type":"transaction_header"}),
+                        json!({"name":"context_free_actions","type":"action[]"}),
+                        json!({"name":"actions","type":"action[]"}),
+                        json!({"name":"transaction_extensions","type":"extension[]"}),
+                    ],
+                ),
+            );
+            true
+        }
+        "action" if !struct_map.contains_key("action") => {
+            // Ensure dependencies exist too
+            let _ = inject_well_known("permission_level", struct_map, type_map, variant_map);
+            struct_map.insert(
+                "action".into(),
+                (
+                    "",
+                    vec![
+                        json!({"name":"account","type":"name"}),
+                        json!({"name":"name","type":"name"}),
+                        json!({"name":"authorization","type":"permission_level[]"}),
+                        json!({"name":"data","type":"bytes"}),
+                    ],
+                ),
+            );
+            true
+        }
+        "extension" if !struct_map.contains_key("extension") => {
+            struct_map.insert(
+                "extension".into(),
+                (
+                    "",
+                    vec![
+                        json!({"name":"type","type":"uint16"}),
+                        json!({"name":"data","type":"bytes"}),
+                    ],
+                ),
             );
             true
         }
@@ -564,10 +670,10 @@ fn inject_well_known(
     }
 }
 
-fn collect_referenced_types(struct_map: &HashMap<String, Vec<Value>>) -> Vec<String> {
+fn collect_referenced_types(struct_map: &BTreeMap<String, (&str, Vec<Value>)>) -> Vec<String> {
     let mut out = std::collections::BTreeSet::new();
     for fields in struct_map.values() {
-        for f in fields {
+        for f in fields.1.clone() {
             if let Some(ts) = f.get("type").and_then(|v| v.as_str()) {
                 // Remove suffixes first ([], ?, $). If generic (pair<…>, map<…>) remains,
                 // peel at '<' to get the head.
@@ -750,7 +856,7 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
                 "bool" => "bool".into(),
 
                 // Containers -> v1.1 suffix grammar
-                "Vec" => {
+                "Vec" | "BTreeSet" => {
                     let args = gen_types();
                     if let Some(inner) = args.first() {
                         let inner_ty = rust_type_to_eos_type(inner);
@@ -812,6 +918,7 @@ fn rust_type_to_eos_type(ty: &Type) -> String {
                 "PermissionLevelWeight" => "permission_level_weight".into(),
                 "WaitWeight" => "wait_weight".into(),
                 "BlockSigningAuthority" => "block_signing_authority".into(),
+                "Transaction" => "transaction".into(),
 
                 // Default: KEEP THE NAME (don't lowercase!) so custom structs match exactly.
                 other => other.to_string(),
@@ -988,14 +1095,14 @@ fn ensure_pair_struct(
 }
 
 // Rewrite any lingering generics to v1.1 suffix style and synthesize helper structs.
-fn rewrite_generics_to_v1_1(struct_map: &mut HashMap<String, Vec<Value>>) {
+fn rewrite_generics_to_v1_1(struct_map: &mut BTreeMap<String, (&str, Vec<Value>)>) {
     // Snapshot existing struct names
     let have: HashSet<String> = struct_map.keys().cloned().collect();
     let mut scheduled: HashSet<String> = HashSet::new();
     let mut to_add: Vec<(String, Vec<Value>)> = Vec::new();
 
     for (_name, fields) in struct_map.iter_mut() {
-        for f in fields.iter_mut() {
+        for f in fields.1.iter_mut() {
             let Some(ts) = f.get_mut("type") else {
                 continue;
             };
@@ -1071,7 +1178,7 @@ fn rewrite_generics_to_v1_1(struct_map: &mut HashMap<String, Vec<Value>>) {
 
     // Now insert synthesized helper structs
     for (name, fields) in to_add {
-        struct_map.insert(name, fields);
+        struct_map.insert(name, ("", fields));
     }
 }
 

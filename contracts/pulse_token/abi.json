@@ -38,19 +38,25 @@
       "base": "",
       "fields": [
         {
-          "name": "supply",
+          "name": "balance",
           "type": "asset"
-        },
-        {
-          "name": "max_supply",
-          "type": "asset"
-        },
-        {
-          "name": "issuer",
-          "type": "name"
         }
       ],
-      "name": "CurrencyStats"
+      "name": "Account"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "quantity",
+          "type": "asset"
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ],
+      "name": "retire"
     },
     {
       "base": "",
@@ -62,21 +68,13 @@
         {
           "name": "symbol",
           "type": "symbol"
-        },
-        {
-          "name": "ram_payer",
-          "type": "name"
         }
       ],
-      "name": "open"
+      "name": "close"
     },
     {
       "base": "",
       "fields": [
-        {
-          "name": "from",
-          "type": "name"
-        },
         {
           "name": "to",
           "type": "name"
@@ -90,7 +88,25 @@
           "type": "string"
         }
       ],
-      "name": "transfer"
+      "name": "issue"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "supply",
+          "type": "asset"
+        },
+        {
+          "name": "max_supply",
+          "type": "asset"
+        },
+        {
+          "name": "issuer",
+          "type": "name"
+        }
+      ],
+      "name": "CurrencyStats"
     },
     {
       "base": "",
@@ -116,9 +132,13 @@
         {
           "name": "symbol",
           "type": "symbol"
+        },
+        {
+          "name": "ram_payer",
+          "type": "name"
         }
       ],
-      "name": "close"
+      "name": "open"
     },
     {
       "base": "",
@@ -128,6 +148,10 @@
     {
       "base": "",
       "fields": [
+        {
+          "name": "from",
+          "type": "name"
+        },
         {
           "name": "to",
           "type": "name"
@@ -141,31 +165,7 @@
           "type": "string"
         }
       ],
-      "name": "issue"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "quantity",
-          "type": "asset"
-        },
-        {
-          "name": "memo",
-          "type": "string"
-        }
-      ],
-      "name": "retire"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "balance",
-          "type": "asset"
-        }
-      ],
-      "name": "Account"
+      "name": "transfer"
     }
   ],
   "tables": [

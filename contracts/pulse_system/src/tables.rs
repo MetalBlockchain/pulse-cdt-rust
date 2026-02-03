@@ -242,7 +242,7 @@ pub struct GlobalStateD {
 }
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq)]
-#[table(primary_key = 0)]
+#[table(primary_key = name!("globalram").raw())]
 pub struct GlobalStateRAM {
     pub ram_price_per_byte: Asset,
     pub max_per_user_bytes: u64,
@@ -339,7 +339,7 @@ pub struct RexLoan {
 }
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
-#[table(primary_key = 0)]
+#[table(primary_key = name!("global").raw())]
 pub struct GlobalState {
     pub max_ram_size: u64,
     pub total_ram_bytes_reserved: u64,
@@ -364,7 +364,7 @@ impl GlobalState {
 }
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
-#[table(primary_key = 0)]
+#[table(primary_key = name!("global2").raw())]
 pub struct GlobalState2 {
     pub new_ram_per_block: u16,
     pub last_ram_increase: BlockTimestamp,
@@ -374,14 +374,14 @@ pub struct GlobalState2 {
 }
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
-#[table(primary_key = 0)]
+#[table(primary_key = name!("global3").raw())]
 pub struct GlobalState3 {
     pub last_vpay_state_update: TimePoint,
     pub total_vpay_share_change_rate: f64,
 }
 
 #[derive(Read, Write, NumBytes, Clone, PartialEq, Default)]
-#[table(primary_key = 0)]
+#[table(primary_key = name!("global4").raw())]
 pub struct GlobalState4 {
     pub continuous_rate: f64,
     pub inflation_pay_factor: i64,

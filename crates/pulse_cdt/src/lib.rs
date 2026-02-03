@@ -19,6 +19,5 @@ use crate::core::Name;
 pub const SAME_PAYER: Name = Name::new(0);
 
 pub mod __reexports {
-    pub use dlmalloc;
     pub use lol_alloc;
 }

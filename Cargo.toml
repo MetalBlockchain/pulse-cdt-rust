@@ -6,6 +6,7 @@ members = [
     "contracts/pulse_token",
     "contracts/pulse_system",
     "contracts/pulse_msig",
+    "contracts/pulse_bios",
     "crates/pulse_name",
     "crates/pulse_proc_macro",
     "crates/pulse_serialization",

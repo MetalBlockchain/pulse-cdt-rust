@@ -1,9 +1,5 @@
 use core::{
-    borrow::{Borrow, BorrowMut},
-    ffi::c_void,
-    marker::PhantomData,
-    ops::Deref,
-    ptr::null,
+    borrow::{Borrow, BorrowMut}, ffi::c_void, fmt::Debug, marker::PhantomData, ops::Deref, ptr::null
 };
 
 use crate::{
@@ -40,7 +36,7 @@ where
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct MultiIndex<T>
 where
     T: Table,
@@ -67,7 +63,7 @@ where
 
     #[inline]
     pub fn find(&self, key: u64) -> ConstIterator<T> {
-        let itr = db_find_i64(self.code, self.scope, self.table.into(), key.into());
+        let itr = db_find_i64(self.code, self.scope, self.table, key.into());
         if itr < 0 {
             return self.end();
         } else {
@@ -140,6 +136,16 @@ where
 
     pub fn end(&self) -> ConstIterator<T> {
         ConstIterator::new(self.clone(), None)
+    }
+}
+
+impl<T> PartialEq for MultiIndex<T>
+where
+    T: Table,
+{
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.code == other.code && self.scope == other.scope && self.table == other.table
     }
 }
 
@@ -288,5 +294,53 @@ where
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pulse_serialization::{NumBytes, Read, ReadError, Write, WriteError};
+
+    use crate::core::{ConstIterator, MultiIndex, Name, Table};
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct TestTable {
+        a: u64
+    }
+
+    impl NumBytes for TestTable {
+        fn num_bytes(&self) -> usize {
+            8
+        }
+    }
+
+    impl Read for TestTable {
+        fn read(bytes: &[u8], pos: &mut usize) -> Result<Self, ReadError> {
+            let a = u64::read(bytes, pos)?;
+            Ok(TestTable { a })
+        }
+    }
+
+    impl Write for TestTable {
+        fn write(&self, bytes: &mut [u8], pos: &mut usize) -> Result<(), WriteError> {
+            self.a.write(bytes, pos)
+        }
+    }
+
+    impl Table for TestTable {
+        type Key = u64;
+        type Row = Self;
+
+        fn primary_key(row: &Self::Row) -> Self::Key {
+            row.a
+        }
+    }
+
+    #[test]
+    pub fn test_end_iterator() {
+        let idx = MultiIndex::<TestTable>::new(Name::new(1), 0, Name::new(1));
+        let end_iterator = ConstIterator::new(idx.clone(), None);
+        let end_iterator2 = ConstIterator::new(idx, None);
+        assert!(end_iterator == end_iterator2, "end iterators should be equal");
     }
 }

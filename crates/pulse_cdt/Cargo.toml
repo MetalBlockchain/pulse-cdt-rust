@@ -10,7 +10,7 @@ pulse_proc_macro = { workspace = true }
 pulse_name = { workspace = true }
 pulse_bytes = { workspace = true }
 serde_json = "1.0"
-lol_alloc = "0.4"
+lol_alloc = "0.4.1"
 dlmalloc = { version = "0.2", features = ["global"] }
 
 [profile.dev]

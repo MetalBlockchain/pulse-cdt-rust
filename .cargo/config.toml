@@ -1,0 +1,8 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "-C", "link-arg=--stack-first",
+    "-C", "link-arg=-zstack-size=8192",
+    "-C", "link-arg=--no-merge-data-segments",
+    "-C", "link-arg=--gc-sections",
+    "-C", "link-arg=--strip-all",
+]

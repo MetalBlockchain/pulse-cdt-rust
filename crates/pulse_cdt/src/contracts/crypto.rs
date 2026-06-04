@@ -17,16 +17,16 @@ mod action_impl {
         pub fn assert_sha512(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void);
 
         #[link_name = "sha1"]
-        pub fn sha1(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void) -> u32;
+        pub fn sha1(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void);
 
         #[link_name = "ripemd160"]
-        pub fn ripemd160(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void) -> u32;
+        pub fn ripemd160(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void);
 
         #[link_name = "sha256"]
-        pub fn sha256(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void) -> u32;
+        pub fn sha256(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void);
 
         #[link_name = "sha512"]
-        pub fn sha512(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void) -> u32;
+        pub fn sha512(msg: *mut crate::c_void, len: u32, ptr: *mut crate::c_void);
 
         #[link_name = "recover_key"]
         pub fn recover_key(

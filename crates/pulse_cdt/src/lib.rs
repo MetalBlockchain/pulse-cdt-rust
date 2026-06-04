@@ -8,7 +8,7 @@ pub use ::core::ffi::c_char;
 pub use ::core::ffi::c_void;
 
 pub use pulse_proc_macro::{
-    action, constructor, contract, destructor, dispatch, name, name_raw, symbol_with_code, table,
+    action, constructor, contract, destructor, dispatch, name, name_raw, symbol_with_code, table, on_notify,
 };
 pub use pulse_serialization::{
     DataStream, NumBytes, Read, ReadError, VarInt32, VarUint32, Write, WriteError,

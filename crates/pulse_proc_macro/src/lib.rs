@@ -36,6 +36,12 @@ pub fn destructor(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
+pub fn on_notify(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // inert: the #[contract] macro reads and strips it
+    item
+}
+
+#[proc_macro_attribute]
 pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
     contract_macro(_attr, item)
 }

@@ -97,6 +97,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
     let mut constructor: Option<ImplItemMethod> = None;
     let mut destructor: Option<ImplItemMethod> = None;
     let mut actions: Vec<ActionMeta> = Vec::new();
+    let mut notify_handlers: Vec<NotifyMeta> = Vec::new();
 
     for item in &impl_block.items {
         if let ImplItem::Method(m) = item {
@@ -153,6 +154,30 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
                     rk,
                 });
             }
+
+            // #[on_notify("account::action")]
+            if let Some(cfg) = parse_on_notify_attr(&m.attrs)? {
+                let rk = receiver_kind(m);
+                match rk {
+                    ReceiverKind::None | ReceiverKind::Ref | ReceiverKind::MutRef => {}
+                    ReceiverKind::Value => {
+                        return Err(syn::Error::new(
+                            m.sig.span(),
+                            "#[on_notify] methods must be static or take `&self` (not `&mut self` or `self`)",
+                        ));
+                    }
+                }
+
+                let (acct_pat, action_pat) = parse_notify_pattern(&cfg.pattern, m.sig.span())?;
+
+                notify_handlers.push(NotifyMeta {
+                    method: m.clone(),
+                    acct_pat,
+                    action_pat,
+                    decoder: cfg.decoder.or_else(|| args.decoder.clone()),
+                    rk,
+                });
+            }
         }
     }
 
@@ -177,10 +202,16 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
         quote! {}
     };
 
-    // Generate action arms
-    let action_arms = actions.iter().map(|a| {
+    // Generate action arms.
+    //
+    // These run only when `code == receiver` (a self-received action), so the
+    // arm conditions no longer re-test that invariant — it's hoisted into the
+    // top-level branch in `apply`. The first arm is a plain `if`, the rest are
+    // `else if`, so no `if false {}` seed is needed.
+    let action_arms = actions.iter().enumerate().map(|(i, a)| {
         let method_ident = &a.method.sig.ident;
         let action_name_str = &a.name;
+        let kw = if i == 0 { quote!(if) } else { quote!(else if) };
 
         // Build tuple type of method parameters
         let arg_types: Vec<&Type> = a
@@ -222,7 +253,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
         if args_len == 0 {
             // no-arg action: no decode needed
             quote! {
-                else if code == receiver && action == pulse_cdt::name_raw!(#action_name_str) {
+                #kw action == pulse_cdt::name_raw!(#action_name_str) {
                     #call_no_args;
                 }
             }
@@ -253,7 +284,7 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             };
 
             quote! {
-                else if code == receiver && action == pulse_cdt::name_raw!(#action_name_str) {
+                #kw action == pulse_cdt::name_raw!(#action_name_str) {
                     type __Args = #tuple_ty;
                     let #tmp_ident: __Args = #decoder_path::<__Args>();
                     let #bind_pat = #tmp_ident;
@@ -262,6 +293,127 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             }
         }
     });
+
+    // Generate on_notify arms.
+    //
+    // EOSIO semantics: a notify handler fires when the contract is being
+    // *notified* of an action it did not directly receive, i.e. `code != receiver`.
+    // That invariant is hoisted into the top-level branch in `apply`, so the
+    // arms only test `code` (the first receiver / the account that called
+    // `require_recipient`) and `action`. Either side of the pattern may be a
+    // wildcard `*`, in which case that side collapses to `true`. The first arm
+    // is a plain `if`, the rest are `else if`.
+    let notify_arms = notify_handlers.iter().enumerate().map(|(i, h)| {
+        let method_ident = &h.method.sig.ident;
+        let kw = if i == 0 { quote!(if) } else { quote!(else if) };
+
+        let arg_types: Vec<&Type> = h
+            .method
+            .sig
+            .inputs
+            .iter()
+            .filter_map(|arg| {
+                if let FnArg::Typed(pt) = arg {
+                    Some(&*pt.ty)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let args_len = arg_types.len();
+        let tuple_ty = tuple_type_tokens(&arg_types);
+
+        let decoder_path: TokenStream2 = h
+            .decoder
+            .clone()
+            .map(|p| quote!(#p))
+            .unwrap_or_else(|| quote!(::pulse_cdt::contracts::read_action_data));
+
+        // Build the match condition for code/action against the (possibly wildcarded) pattern.
+        let code_cond: TokenStream2 = match &h.acct_pat {
+            NotifyPat::Wildcard => quote! { true },
+            NotifyPat::Name(s) => quote! { code == pulse_cdt::name_raw!(#s) },
+        };
+        let action_cond: TokenStream2 = match &h.action_pat {
+            NotifyPat::Wildcard => quote! { true },
+            NotifyPat::Name(s) => quote! { action == pulse_cdt::name_raw!(#s) },
+        };
+
+        let call_no_args = match h.rk {
+            ReceiverKind::None => quote! { <#self_ty>::#method_ident() },
+            ReceiverKind::Ref => quote! { __instance.#method_ident() },
+            ReceiverKind::MutRef => quote! { __instance.#method_ident() },
+            _ => unreachable!(),
+        };
+
+        if args_len == 0 {
+            quote! {
+                #kw (#code_cond) && (#action_cond) {
+                    #call_no_args;
+                }
+            }
+        } else {
+            let tmp_ident = format_ident!("__nargs");
+            let bind_idents: Vec<proc_macro2::Ident> =
+                (0..args_len).map(|i| format_ident!("__n{}", i)).collect();
+
+            let call_with_args = match h.rk {
+                ReceiverKind::None => {
+                    let args = quote! { #(#bind_idents),* };
+                    quote! { <#self_ty>::#method_ident( #args ) }
+                }
+                ReceiverKind::Ref | ReceiverKind::MutRef => {
+                    let args = quote! { #(#bind_idents),* };
+                    quote! { __instance.#method_ident( #args ) }
+                }
+                _ => unreachable!(),
+            };
+
+            let bind_pat = if args_len == 1 {
+                let a0 = &bind_idents[0];
+                quote! { ( #a0 , ) }
+            } else {
+                quote! { ( #(#bind_idents),* ) }
+            };
+
+            quote! {
+                #kw (#code_cond) && (#action_cond) {
+                    type __NArgs = #tuple_ty;
+                    let #tmp_ident: __NArgs = #decoder_path::<__NArgs>();
+                    let #bind_pat = #tmp_ident;
+                    #call_with_args;
+                }
+            }
+        }
+    });
+
+    // Assemble the `code == receiver` branch (self-received actions). If there
+    // are no actions, the body is just the "unknown action" check — emitting a
+    // bare `else` with no preceding `if` would be a syntax error.
+    let action_dispatch = if actions.is_empty() {
+        quote! {
+            pulse_cdt::core::check(false, "unknown action");
+        }
+    } else {
+        quote! {
+            #(#action_arms)*
+            else {
+                pulse_cdt::core::check(false, "unknown action");
+            }
+        }
+    };
+
+    // Assemble the `code != receiver` branch (notifications). If there are no
+    // notify handlers, the notification falls through silently (EOSIO behavior),
+    // so emit nothing.
+    let notify_dispatch = if notify_handlers.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            #(#notify_arms)*
+        }
+    };
 
     let type_ident = match self_ty {
         syn::Type::Path(tp) => tp.path.segments.last().unwrap().ident.clone(),
@@ -357,9 +509,15 @@ fn expand_contract(impl_block: ItemImpl, args: ContractArgs) -> Result<TokenStre
             if action == pulse_cdt::name_raw!("onerror") {
                 pulse_cdt::core::check(false, "onerror action's are only valid from the \"pulse\" system account");
             }
-            #(#action_arms)*
-            else if code == receiver {
-                pulse_cdt::core::check(false, "unknown action");
+
+            // The `code == receiver` invariant is tested once here rather than
+            // in every dispatch arm:
+            //   - code == receiver  => a self-received action
+            //   - code != receiver  => a notification from another contract
+            if code == receiver {
+                #action_dispatch
+            } else {
+                #notify_dispatch
             }
 
             #dtor_call
@@ -382,6 +540,25 @@ struct ActionMeta {
     name: String,
     decoder: Option<Path>,
     rk: ReceiverKind,
+}
+
+struct NotifyCfg {
+    pattern: String,
+    decoder: Option<Path>,
+}
+
+struct NotifyMeta {
+    method: ImplItemMethod,
+    acct_pat: NotifyPat,
+    action_pat: NotifyPat,
+    decoder: Option<Path>,
+    rk: ReceiverKind,
+}
+
+#[derive(Clone)]
+enum NotifyPat {
+    Wildcard,
+    Name(String),
 }
 
 fn parse_action_attr(attrs: &[Attribute]) -> Result<Option<ActionCfg>> {
@@ -459,6 +636,135 @@ fn parse_action_attr(attrs: &[Attribute]) -> Result<Option<ActionCfg>> {
     }
 
     Ok(cfg)
+}
+
+/// Parse `#[on_notify("account::action")]` or
+/// `#[on_notify("account::action", decoder = "path::to::decode")]`.
+fn parse_on_notify_attr(attrs: &[Attribute]) -> Result<Option<NotifyCfg>> {
+    let mut cfg: Option<NotifyCfg> = None;
+
+    for a in attrs {
+        if is_attr(a, "on_notify") {
+            let meta = a.parse_meta().map_err(|_| {
+                syn::Error::new(
+                    a.span(),
+                    r#"expected `#[on_notify("account::action")]`"#,
+                )
+            })?;
+
+            let list = match meta {
+                Meta::List(list) => list,
+                _ => {
+                    return Err(syn::Error::new(
+                        a.span(),
+                        r#"expected `#[on_notify("account::action")]`"#,
+                    ));
+                }
+            };
+
+            let mut pattern: Option<String> = None;
+            let mut decoder: Option<Path> = None;
+
+            for n in list.nested {
+                match n {
+                    // bare string literal: the "account::action" pattern
+                    NestedMeta::Lit(Lit::Str(s)) => {
+                        if pattern.is_some() {
+                            return Err(syn::Error::new(
+                                s.span(),
+                                "only one notify pattern is allowed",
+                            ));
+                        }
+                        pattern = Some(s.value());
+                    }
+                    // decoder = "path::to::decode"
+                    NestedMeta::Meta(Meta::NameValue(MetaNameValue {
+                        path,
+                        lit: Lit::Str(s),
+                        ..
+                    })) if path.is_ident("decoder") => {
+                        let p: Path = s.parse()?;
+                        decoder = Some(p);
+                    }
+                    // decoder(path::to::decode)
+                    NestedMeta::Meta(Meta::List(MetaList { path, nested, .. }))
+                        if path.is_ident("decoder") =>
+                    {
+                        let mut it = nested.into_iter();
+                        let one = it.next().ok_or_else(|| {
+                            syn::Error::new(path.span(), "expected decoder path")
+                        })?;
+                        if it.next().is_some() {
+                            return Err(syn::Error::new(
+                                path.span(),
+                                "expected a single path for decoder",
+                            ));
+                        }
+                        let p = match one {
+                            NestedMeta::Meta(Meta::Path(p)) => p,
+                            other => {
+                                return Err(syn::Error::new(other.span(), "expected a path"))
+                            }
+                        };
+                        decoder = Some(p);
+                    }
+                    other => {
+                        return Err(syn::Error::new(
+                            other.span(),
+                            r#"expected `"account::action"` and optionally `decoder = "path::to::decode"`"#,
+                        ));
+                    }
+                }
+            }
+
+            let pattern = pattern.ok_or_else(|| {
+                syn::Error::new(
+                    a.span(),
+                    r#"#[on_notify] requires a pattern, e.g. #[on_notify("eosio.token::transfer")]"#,
+                )
+            })?;
+
+            cfg = Some(NotifyCfg { pattern, decoder });
+        }
+    }
+
+    Ok(cfg)
+}
+
+/// Split `"account::action"` into account + action patterns, each of which may
+/// be the wildcard `*`. Mirrors EOSIO's `on_notify` matching.
+fn parse_notify_pattern(
+    pattern: &str,
+    span: proc_macro2::Span,
+) -> Result<(NotifyPat, NotifyPat)> {
+    let mut parts = pattern.splitn(2, "::");
+    let acct = parts.next().unwrap_or("");
+    let action = parts.next().ok_or_else(|| {
+        syn::Error::new(
+            span,
+            r#"on_notify pattern must be of the form "account::action" (e.g. "eosio.token::transfer")"#,
+        )
+    })?;
+
+    if acct.is_empty() || action.is_empty() {
+        return Err(syn::Error::new(
+            span,
+            r#"on_notify pattern must be of the form "account::action""#,
+        ));
+    }
+
+    let acct_pat = if acct == "*" {
+        NotifyPat::Wildcard
+    } else {
+        NotifyPat::Name(acct.to_string())
+    };
+    let action_pat = if action == "*" {
+        NotifyPat::Wildcard
+    } else {
+        NotifyPat::Name(action.to_string())
+    };
+
+    Ok((acct_pat, action_pat))
 }
 
 fn is_attr(a: &Attribute, want: &str) -> bool {

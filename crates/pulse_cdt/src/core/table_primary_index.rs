@@ -40,12 +40,11 @@ where
     #[inline]
     fn bytes(&self) -> Vec<u8> {
         let nullptr: *mut c_void = null_mut() as *mut _ as *mut c_void;
-        let size = db_get_i64(self.value, nullptr, 0);
+        let size = db_get_i64(self.value, &[], 0);
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let mut bytes = vec![0u8; size as usize];
-        let ptr: *mut c_void = &mut bytes[..] as *mut _ as *mut c_void;
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        db_get_i64(self.value, ptr, size as u32);
+        db_get_i64(self.value, &mut bytes, size as u32);
         bytes
     }
 
@@ -68,9 +67,8 @@ where
         let mut bytes = vec![0_u8; size];
         let mut pos = 0;
         item.write(&mut bytes, &mut pos)?;
-        let bytes_ptr: *const c_void = &bytes[..] as *const _ as *const c_void;
         #[allow(clippy::cast_possible_truncation)]
-        db_update_i64(self.value, payer, bytes_ptr, pos as u32);
+        db_update_i64(self.value, payer, &bytes, pos as u32);
 
         Ok(pos)
     }

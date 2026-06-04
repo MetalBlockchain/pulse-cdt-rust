@@ -81,7 +81,7 @@ mod database_impl {
             code: u64,
             scope: u64,
             table: u64,
-            secondary: *const u64,
+            secondary: *mut u64,
             primary: *mut u64,
         ) -> i32;
 
@@ -90,7 +90,7 @@ mod database_impl {
             code: u64,
             scope: u64,
             table: u64,
-            secondary: *const u64,
+            secondary: *mut u64,
             primary: *mut u64,
         ) -> i32;
 
@@ -106,8 +106,8 @@ mod database_impl {
 }
 
 #[inline]
-pub fn db_get_i64(iterator: i32, data: *const crate::c_void, len: u32) -> i32 {
-    unsafe { database_impl::db_get_i64(iterator, data, len) }
+pub fn db_get_i64(iterator: i32, data: &[u8], len: u32) -> i32 {
+    unsafe { database_impl::db_get_i64(iterator, data.as_ptr() as *const crate::c_void, len) }
 }
 
 #[inline]
@@ -126,8 +126,8 @@ pub fn db_previous_i64(iterator: i32, primary: *mut u64) -> i32 {
 }
 
 #[inline]
-pub fn db_update_i64(iterator: i32, payer: Name, data: *const crate::c_void, len: u32) {
-    unsafe { database_impl::db_update_i64(iterator, payer.raw(), data, len) }
+pub fn db_update_i64(iterator: i32, payer: Name, data: &[u8], len: u32) {
+    unsafe { database_impl::db_update_i64(iterator, payer.raw(), data.as_ptr() as *const crate::c_void, len) }
 }
 
 #[inline]
@@ -239,7 +239,7 @@ pub fn db_idx64_lowerbound(
     code: Name,
     scope: u64,
     table: Name,
-    secondary: &u64,
+    secondary: *mut u64,
     primary: *mut u64,
 ) -> i32 {
     unsafe {
@@ -258,7 +258,7 @@ pub fn db_idx64_upperbound(
     code: Name,
     scope: u64,
     table: Name,
-    secondary: &u64,
+    secondary: *mut u64,
     primary: *mut u64,
 ) -> i32 {
     unsafe {

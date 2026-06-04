@@ -81,11 +81,11 @@ where
 
     #[inline]
     pub fn load_object_by_primary_iterator(&self, itr: i32) -> T::Row {
-        let size = db_get_i64(itr, null(), 0);
+        let size = db_get_i64(itr, &[], 0);
         check(size >= 0, "error reading iterator");
 
         let mut buffer = vec![0_u8; size as usize];
-        db_get_i64(itr, buffer.as_mut_ptr() as *mut c_void, size as u32);
+        db_get_i64(itr, &mut buffer, size as u32);
         T::Row::read(&buffer, &mut 0).expect("failed to read row")
     }
 
@@ -124,9 +124,8 @@ where
         let mut pos = 0;
         item.write(&mut bytes, &mut pos)
             .expect("failed to write item");
-        let bytes_ptr: *const c_void = &bytes[..] as *const _ as *const c_void;
         #[allow(clippy::cast_possible_truncation)]
-        db_update_i64(item.primary_itr, payer, bytes_ptr, pos as u32);
+        db_update_i64(item.primary_itr, payer, &bytes, pos as u32);
     }
 
     #[inline]

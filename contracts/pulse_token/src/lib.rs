@@ -26,7 +26,7 @@ pub struct CurrencyStats {
     pub issuer: Name,
 }
 
-pub const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
+pub const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stat"));
 
 #[derive(Default)]
 struct TokenContract;

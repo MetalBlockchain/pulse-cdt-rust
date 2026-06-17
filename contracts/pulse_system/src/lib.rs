@@ -94,7 +94,7 @@ const GLOBAL_STATE3_SINGLETON: SingletonDefinition<GlobalState3> =
     SingletonDefinition::new(name!("global3"));
 const GLOBAL_STATE4_SINGLETON: SingletonDefinition<GlobalState4> =
     SingletonDefinition::new(name!("global4"));
-const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stats"));
+const STATS: MultiIndexDefinition<CurrencyStats> = MultiIndexDefinition::new(name!("stat"));
 
 // General variables
 const ACTIVE_PERMISSION: Name = name!("active");

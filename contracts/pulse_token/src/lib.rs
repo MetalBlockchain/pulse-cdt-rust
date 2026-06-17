@@ -6,7 +6,7 @@ use alloc::string::String;
 use pulse_cdt::{
     NumBytes, Read, SAME_PAYER, Write, action, contract,
     contracts::{has_auth, is_account, require_auth, require_recipient},
-    core::{Asset, MAX_ASSET_AMOUNT, MultiIndexDefinition, Name, Symbol, SymbolCode, Table, check},
+    core::{Asset, MultiIndexDefinition, Name, Symbol, SymbolCode, Table, check},
     name, table,
 };
 
@@ -56,10 +56,7 @@ impl TokenContract {
                     amount: 0,
                     symbol: sym,
                 },
-                max_supply: Asset {
-                    amount: 0,
-                    symbol: sym,
-                },
+                max_supply,
                 issuer,
             },
         );
@@ -91,7 +88,7 @@ impl TokenContract {
             "symbol precision mismatch",
         );
         check(
-            quantity.amount + st.supply.amount <= MAX_ASSET_AMOUNT,
+            quantity.amount <= st.max_supply.amount - st.supply.amount,
             "quantity exceeds available supply",
         );
 

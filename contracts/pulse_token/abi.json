@@ -38,25 +38,15 @@
       "base": "",
       "fields": [
         {
-          "name": "balance",
-          "type": "asset"
-        }
-      ],
-      "name": "Account"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "quantity",
-          "type": "asset"
+          "name": "issuer",
+          "type": "name"
         },
         {
-          "name": "memo",
-          "type": "string"
+          "name": "max_supply",
+          "type": "asset"
         }
       ],
-      "name": "retire"
+      "name": "create"
     },
     {
       "base": "",
@@ -94,6 +84,24 @@
       "base": "",
       "fields": [
         {
+          "name": "owner",
+          "type": "name"
+        },
+        {
+          "name": "symbol",
+          "type": "symbol"
+        },
+        {
+          "name": "ram_payer",
+          "type": "name"
+        }
+      ],
+      "name": "open"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
           "name": "supply",
           "type": "asset"
         },
@@ -112,33 +120,15 @@
       "base": "",
       "fields": [
         {
-          "name": "issuer",
-          "type": "name"
-        },
-        {
-          "name": "max_supply",
+          "name": "quantity",
           "type": "asset"
-        }
-      ],
-      "name": "create"
-    },
-    {
-      "base": "",
-      "fields": [
-        {
-          "name": "owner",
-          "type": "name"
         },
         {
-          "name": "symbol",
-          "type": "symbol"
-        },
-        {
-          "name": "ram_payer",
-          "type": "name"
+          "name": "memo",
+          "type": "string"
         }
       ],
-      "name": "open"
+      "name": "retire"
     },
     {
       "base": "",
@@ -166,6 +156,16 @@
         }
       ],
       "name": "transfer"
+    },
+    {
+      "base": "",
+      "fields": [
+        {
+          "name": "balance",
+          "type": "asset"
+        }
+      ],
+      "name": "Account"
     }
   ],
   "tables": [

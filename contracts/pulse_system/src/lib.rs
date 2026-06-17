@@ -230,6 +230,8 @@ impl SystemContract {
 
     #[action]
     fn newaccount(creator: Name, name: Name, owner: Authority, active: Authority) {
+        require_auth(get_self());
+        
         if creator != get_self() && creator != name!("proton") {
             let mut tmp = name.raw() >> 4;
             let mut has_dot_or_less_than_12_chars = false;
@@ -299,6 +301,26 @@ impl SystemContract {
     #[action]
     fn setcode(account: Name, vmtype: u8, vmversion: u8, code: Vec<u8>) {
         // Set code is open for all
+    }
+
+    #[action]
+    fn updateauth(account: Name, permission: Name, parent: Name, auth: Authority) {
+        // No action required
+    }
+
+    #[action]
+    fn deleteauth(account: Name, permission: Name) {
+        // No action required
+    }
+
+    #[action]
+    fn linkauth(account: Name, code: Name, message_type: Name, requirement: Name) {
+        // No action required
+    }
+
+    #[action]
+    fn unlinkauth(account: Name, code: Name, message_type: Name) {
+        // No action required
     }
 
     #[action]

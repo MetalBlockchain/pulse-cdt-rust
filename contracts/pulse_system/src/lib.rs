@@ -454,6 +454,7 @@ impl SystemContract {
         let userres = USER_RESOURCES_TABLE.index(get_self(), receiver.raw());
         let mut res_itr = userres.find(receiver.raw());
         let core_symbol = get_core_symbol(None);
+        let mut total_ram_bytes = bytes_out;
         if res_itr == userres.end() {
             userres.emplace(
                 receiver,
@@ -473,6 +474,7 @@ impl SystemContract {
         } else {
             userres.modify(&mut res_itr, receiver, |res| {
                 res.ram_bytes += bytes_out;
+                total_ram_bytes = res.ram_bytes;
             });
         }
 
@@ -481,8 +483,14 @@ impl SystemContract {
         if voter_itr == voters.end()
             || !has_field(voter_itr.flags1, VoterInfoFlags1Fields::RamManaged)
         {
-            let (ram, net, cpu) = get_resource_limits(receiver);
-            set_resource_limits(receiver, ram + RAM_GIFT_BYTES, net, cpu);
+            // Set the enforced quota from the userres table total (which now
+            // includes this purchase), matching reference eosio.system
+            // (`res_itr->ram_bytes + ram_gift_bytes`) and the changebw path
+            // below. Previously this used the *current limit* + gift, dropping
+            // `bytes_out` entirely — RAM was charged and recorded in userres
+            // but never credited to the enforced quota.
+            let (_ram, net, cpu) = get_resource_limits(receiver);
+            set_resource_limits(receiver, total_ram_bytes + RAM_GIFT_BYTES, net, cpu);
         }
     }
 
